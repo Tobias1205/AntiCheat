@@ -5,7 +5,7 @@ import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import nl.shieldguard.protection.MaskManager;
 import nl.shieldguard.protection.ChunkPacketListener;
-import nl.shieldguard.protection.RevealListener;
+import nl.shieldguard.protection.Revealer;
 import nl.shieldguard.reports.ReportManager;
 import nl.shieldguard.reports.ReportsCommand;
 import nl.shieldguard.reports.ReportCommand;
@@ -21,6 +21,7 @@ public final class ShieldGuard extends JavaPlugin {
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
     private MaskManager maskManager;
+    private Revealer revealer;
     private ReportManager reportManager;
     private ReportsGui reportsGui;
     private PacketListenerCommon packetListener;
@@ -31,8 +32,11 @@ public final class ShieldGuard extends JavaPlugin {
 
         maskManager = new MaskManager(this);
         getServer().getPluginManager().registerEvents(maskManager, this);
-        getServer().getPluginManager().registerEvents(new RevealListener(this, maskManager), this);
         maskManager.start();
+
+        revealer = new Revealer(this, maskManager);
+        getServer().getPluginManager().registerEvents(revealer, this);
+        revealer.start();
 
         packetListener = new ChunkPacketListener(maskManager).asAbstract(PacketListenerPriority.HIGH);
         PacketEvents.getAPI().getEventManager().registerListener(packetListener);
@@ -61,6 +65,9 @@ public final class ShieldGuard extends JavaPlugin {
     public void onDisable() {
         if (packetListener != null) {
             PacketEvents.getAPI().getEventManager().unregisterListener(packetListener);
+        }
+        if (revealer != null) {
+            revealer.stop();
         }
         if (maskManager != null) {
             maskManager.stop();

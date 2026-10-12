@@ -13,17 +13,20 @@ public final class Ids {
     public static final byte SOLID = 1;
     public static final byte ORE = 2;
     public static final byte OPEN = 3;
+    public static final byte STORAGE = 4;
 
     private final ClientVersion version;
-    private final Set<String> hidden;
+    private final Set<String> ores;
+    private final Set<String> storage;
     private final byte[] classes = new byte[1 << 17];
 
     public final int stone;
     public final int deepslate;
 
-    public Ids(ClientVersion version, Set<String> hidden) {
+    public Ids(ClientVersion version, Set<String> ores, Set<String> storage) {
         this.version = version;
-        this.hidden = hidden;
+        this.ores = ores;
+        this.storage = storage;
         this.stone = StateTypes.STONE.createBlockState(version).getGlobalId();
         this.deepslate = StateTypes.DEEPSLATE.createBlockState(version).getGlobalId();
     }
@@ -42,7 +45,8 @@ public final class Ids {
         WrappedBlockState state = WrappedBlockState.getByGlobalId(version, id);
         StateType type = state.getType();
         String name = MaskManager.normalize(type.getName());
-        if (hidden.contains(name)) return ORE;
+        if (ores.contains(name)) return ORE;
+        if (storage.contains(name)) return STORAGE;
         if (!type.isSolid()) return OPEN;
         return SOLID;
     }

@@ -7,11 +7,18 @@ worlds:
 # Staff met deze permission worden niet gemaskeerd
 bypass-permission: shieldguard.bypass
 
+# Hoe vaak (in ticks) gekeken wordt welke verborgen blokken/minecarts je nu mag zien
+reveal-interval-ticks: 5
+
 freecam-protection:
   enabled: true
-  # Alles dieper dan (speler-Y - dit aantal) wordt als deepslate/stone naar de client gestuurd.
-  # De grens wordt afgerond op hele chunk-secties (16 blokken).
+  # Alles dat dieper ligt dan (jouw Y - dit aantal) EN dieper dan (terreinoppervlak - surface-margin)
+  # wordt als deepslate/stone naar de client gestuurd. Daardoor zie je op een berg gewoon de echte
+  # vallei onder je: alleen echt ondergronds spul wordt gevuld.
   depth-below-player: 32
+  # Hoeveel blokken onder het oppervlak nog "echt" blijven. Hoger = veiliger tegen freecam, maar
+  # ondiepe grotten blijven zichtbaar. Lager = meer verborgen (ondiepe bases ook).
+  surface-margin: 12
   # Hoe ver (in chunks) om de speler heen we chunks opnieuw sturen als de grens verschuift
   refresh-radius-chunks: 8
   refresh-interval-ticks: 10
@@ -22,9 +29,12 @@ freecam-protection:
 
 xray-protection:
   enabled: true
-  # Erts dat nergens aan lucht/water/lava grenst wordt als stone (boven Y=0) of deepslate (onder Y=0) gestuurd.
-  # Zodra een blok ernaast wordt weggegraven/opgeblazen wordt het echte erts getoond.
-  reveal-distance: 96
+  # true  = ALLE erts is verborgen (ook in grotten) tot je er dichtbij bent en het kunt zien
+  # false = erts dat aan lucht/water/lava grenst blijft gewoon zichtbaar
+  hide-exposed-ores: true
+  # Erts binnen dit aantal blokken en in zicht wordt getoond. 0 = nooit tonen (je ziet pas wat je
+  # hebt gevonden zodra je het stuk hebt gemined; wel vervelend voor spelers).
+  reveal-radius: 6
   hidden-blocks:
     - coal_ore
     - deepslate_coal_ore
@@ -34,6 +44,7 @@ xray-protection:
     - deepslate_iron_ore
     - gold_ore
     - deepslate_gold_ore
+    - nether_gold_ore
     - redstone_ore
     - deepslate_redstone_ore
     - lapis_ore
@@ -42,7 +53,48 @@ xray-protection:
     - deepslate_diamond_ore
     - emerald_ore
     - deepslate_emerald_ore
+    - nether_quartz_ore
     - ancient_debris
+
+# Tegen storage-ESP: kisten, spawners, hoppers e.d. zijn voor de client stone/deepslate
+# tot je er dichtbij bent en er een vrije zichtlijn is (dus niet door muren heen).
+storage-protection:
+  enabled: true
+  reveal-radius: 10
+  # Ook minecarts met kisten/hoppers/spawners en chest-boats verbergen
+  hide-entities: true
+  hidden-blocks:
+    - chest
+    - trapped_chest
+    - ender_chest
+    - barrel
+    - hopper
+    - dropper
+    - dispenser
+    - crafter
+    - furnace
+    - blast_furnace
+    - smoker
+    - brewing_stand
+    - spawner
+    - trial_spawner
+    - shulker_box
+    - white_shulker_box
+    - orange_shulker_box
+    - magenta_shulker_box
+    - light_blue_shulker_box
+    - yellow_shulker_box
+    - lime_shulker_box
+    - pink_shulker_box
+    - gray_shulker_box
+    - light_gray_shulker_box
+    - cyan_shulker_box
+    - purple_shulker_box
+    - blue_shulker_box
+    - brown_shulker_box
+    - green_shulker_box
+    - red_shulker_box
+    - black_shulker_box
 
 reports:
   cooldown-seconds: 60

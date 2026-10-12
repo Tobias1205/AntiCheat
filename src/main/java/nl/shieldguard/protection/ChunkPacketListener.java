@@ -7,19 +7,24 @@ import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
-import com.github.retrooper.packetevents.protocol.world.chunk.TileEntity;
+import com.github.retrooper.packetevents.util.Vector3i;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMultiBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUnloadChunk;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 /**
- * Past uitgaande chunk-packets per speler aan:
- *  1. alles onder de diepte-grens wordt deepslate/stone (anti-freecam)
- *  2. ingesloten erts wordt stone/deepslate (anti-xray)
+ * Past uitgaande packets per speler aan:
+ *  1. alles diep onder het oppervlak EN diep onder de speler wordt deepslate/stone (anti-freecam)
+ *  2. ALLE erts en storage-blokken worden stone/deepslate, tenzij de speler ze dichtbij en in zicht heeft
+ *     (anti-xray, anti-storage-ESP). Het tonen gebeurt in {@link Revealer}.
  */
 public final class ChunkPacketListener implements PacketListener {
+
+    /** Binnen zoveel blokken worden nieuw geplaatste/veranderde blokken meteen echt getoond. */
+    private static final int NEAR = 6;
 
     private final MaskManager masks;
 
@@ -38,23 +43,29 @@ public final class ChunkPacketListener implements PacketListener {
             if (st == null) return;
             WrapperPlayServerUnloadChunk w = new WrapperPlayServerUnloadChunk(event);
             st.sent.remove(MaskManager.key(w.getChunkX(), w.getChunkZ()));
+        } else if (event.getPacketType() == PacketType.Play.Server.BLOCK_CHANGE) {
+            handleBlockChange(event);
+        } else if (event.getPacketType() == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
+            handleMultiBlockChange(event);
         }
     }
+
+    // ------------------------------------------------------------ chunk data
 
     private void handleChunk(PacketSendEvent event) {
         User user = event.getUser();
         if (user == null) return;
         MaskManager.State st = masks.state(user.getUUID());
-        if (st == null || !st.enabled || st.bypass) return;
+        if (st == null || !masks.active(st)) return;
 
         WrapperPlayServerChunkData wrapper = new WrapperPlayServerChunkData(event);
         Column column = wrapper.getColumn();
-        long key = MaskManager.key(column.getX(), column.getZ());
+        long chunkKey = MaskManager.key(column.getX(), column.getZ());
 
         int cutoff = masks.cutoff(st);
-        boolean hideOres = masks.oresHidden(st);
-        if (cutoff == MaskManager.NO_MASK && !hideOres) {
-            st.sent.put(key, MaskManager.NO_MASK);
+        boolean hide = masks.blocksHidden(st);
+        if (cutoff == MaskManager.NO_MASK && !hide) {
+            st.sent.put(chunkKey, MaskManager.NO_MASK);
             return;
         }
 
@@ -62,61 +73,134 @@ public final class ChunkPacketListener implements PacketListener {
         Ids ids = masks.ids(version);
         BaseChunk[] sections = column.getChunks();
         int minY = st.minY;
+        int margin = masks.surfaceMargin();
+        boolean hideExposed = masks.hideExposedOres();
+        int baseX = column.getX() * 16;
+        int baseZ = column.getZ() * 16;
+
+        // Oppervlakte per kolom bepalen vóórdat we iets aanpassen.
+        int[] surface = cutoff != MaskManager.NO_MASK ? surface(sections, minY, ids) : null;
 
         for (int i = 0; i < sections.length; i++) {
             BaseChunk section = sections[i];
             if (section == null) continue;
             int y0 = minY + i * 16;
-            if (cutoff != MaskManager.NO_MASK && y0 + 16 <= cutoff) {
-                fill(section, version, ids.fillFor(y0));
-            } else if (hideOres && !section.isEmpty()) {
-                hideOres(sections, i, y0, ids, version);
+            boolean belowCutoff = cutoff != MaskManager.NO_MASK && y0 < cutoff;
+            if (!belowCutoff && (!hide || section.isEmpty())) continue;
+
+            for (int lz = 0; lz < 16; lz++) {
+                for (int lx = 0; lx < 16; lx++) {
+                    // Alles onder 'limit' is "diep onder de grond" en wordt gevuld.
+                    int limit = Integer.MIN_VALUE;
+                    if (belowCutoff) {
+                        limit = Math.min(cutoff, surface[lz * 16 + lx] - margin);
+                    }
+                    for (int ly = 0; ly < 16; ly++) {
+                        int y = y0 + ly;
+                        if (y < limit) {
+                            section.set(version, lx, ly, lz, ids.fillFor(y));
+                            continue;
+                        }
+                        if (!hide) continue;
+                        byte cls = ids.classify(section.getBlockId(lx, ly, lz));
+                        if (cls != Ids.ORE && cls != Ids.STORAGE) continue;
+                        if (cls == Ids.ORE && !hideExposed && exposed(sections, i, lx, ly, lz, ids)) continue;
+                        if (st.revealed.containsKey(MaskManager.pos(baseX + lx, y, baseZ + lz))) continue;
+                        section.set(version, lx, ly, lz, ids.fillFor(y));
+                    }
+                }
             }
         }
 
-        // Tile entities (kisten, spawners, ...) onder de grens mogen ook niet verstuurd worden
-        TileEntity[] tiles = column.getTileEntities();
-        if (cutoff != MaskManager.NO_MASK && tiles != null && tiles.length > 0) {
-            List<TileEntity> keep = new ArrayList<>(tiles.length);
-            for (TileEntity te : tiles) {
-                if (te.getY() >= cutoff) keep.add(te);
-            }
-            if (keep.size() != tiles.length) {
-                Column filtered = new Column(column.getX(), column.getZ(), column.isFullChunk(),
-                        column.getChunks(), keep.toArray(new TileEntity[0]), column.getHeightMaps());
-                wrapper.setColumn(filtered);
-            }
-        }
-
-        st.sent.put(key, cutoff);
+        st.sent.put(chunkKey, cutoff);
         event.markForReEncode(true);
     }
 
-    private static void fill(BaseChunk section, ClientVersion version, int blockId) {
-        for (int y = 0; y < 16; y++) {
+    /** Y van het hoogste niet-open blok per kolom (index z*16+x), of minY-1 als de kolom leeg is. */
+    private static int[] surface(BaseChunk[] sections, int minY, Ids ids) {
+        int[] result = new int[256];
+        Arrays.fill(result, minY - 1);
+        boolean[] done = new boolean[256];
+        int remaining = 256;
+        for (int i = sections.length - 1; i >= 0 && remaining > 0; i--) {
+            BaseChunk section = sections[i];
+            if (section == null || section.isEmpty()) continue;
+            int y0 = minY + i * 16;
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
-                    section.set(version, x, y, z, blockId);
+                    int idx = z * 16 + x;
+                    if (done[idx]) continue;
+                    for (int y = 15; y >= 0; y--) {
+                        if (ids.classify(section.getBlockId(x, y, z)) != Ids.OPEN) {
+                            result[idx] = y0 + y;
+                            done[idx] = true;
+                            remaining--;
+                            break;
+                        }
+                    }
                 }
             }
         }
+        return result;
     }
 
-    private static void hideOres(BaseChunk[] sections, int index, int y0, Ids ids, ClientVersion version) {
-        BaseChunk section = sections[index];
-        for (int y = 0; y < 16; y++) {
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
-                    int id = section.getBlockId(x, y, z);
-                    if (ids.classify(id) != Ids.ORE) continue;
-                    if (exposed(sections, index, x, y, z, ids)) continue;
-                    section.set(version, x, y, z, ids.fillFor(y0 + y));
-                }
-            }
+    // ----------------------------------------------------------- block changes
+
+    private void handleBlockChange(PacketSendEvent event) {
+        User user = event.getUser();
+        if (user == null) return;
+        MaskManager.State st = masks.state(user.getUUID());
+        if (st == null || !masks.blocksHidden(st)) return;
+
+        WrapperPlayServerBlockChange w = new WrapperPlayServerBlockChange(event);
+        Ids ids = masks.ids(user.getClientVersion());
+        byte cls = ids.classify(w.getBlockId());
+        if (cls != Ids.ORE && cls != Ids.STORAGE) return;
+
+        Vector3i p = w.getBlockPosition();
+        if (allow(st, p.getX(), p.getY(), p.getZ())) return;
+
+        w.setBlockId(ids.fillFor(p.getY()));
+        event.markForReEncode(true);
+    }
+
+    private void handleMultiBlockChange(PacketSendEvent event) {
+        User user = event.getUser();
+        if (user == null) return;
+        MaskManager.State st = masks.state(user.getUUID());
+        if (st == null || !masks.blocksHidden(st)) return;
+
+        WrapperPlayServerMultiBlockChange w = new WrapperPlayServerMultiBlockChange(event);
+        Ids ids = masks.ids(user.getClientVersion());
+        WrapperPlayServerMultiBlockChange.EncodedBlock[] blocks = w.getBlocks();
+        boolean changed = false;
+        for (WrapperPlayServerMultiBlockChange.EncodedBlock b : blocks) {
+            byte cls = ids.classify(b.getBlockId());
+            if (cls != Ids.ORE && cls != Ids.STORAGE) continue;
+            if (allow(st, b.getX(), b.getY(), b.getZ())) continue;
+            b.setBlockId(ids.fillFor(b.getY()));
+            changed = true;
+        }
+        if (changed) {
+            w.setBlocks(blocks);
+            event.markForReEncode(true);
         }
     }
 
-    /** Erts blijft zichtbaar als een buur lucht/water/lava is (of buiten deze chunk valt). */
+    /** Mag dit blok echt getoond worden (al onthuld of vlak bij de speler)? Zo ja, dan wordt het onthuld. */
+    private static boolean allow(MaskManager.State st, int x, int y, int z) {
+        long key = MaskManager.pos(x, y, z);
+        if (st.revealed.containsKey(key)) return true;
+        if (Math.abs(x - st.x) <= NEAR && Math.abs(y - st.y) <= NEAR && Math.abs(z - st.z) <= NEAR) {
+            st.revealed.put(key, Boolean.TRUE);
+            return true;
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------- hulpjes
+
+    /** (Alleen als hide-exposed-ores uit staat) erts blijft zichtbaar als een buur lucht/water/lava is. */
     private static boolean exposed(BaseChunk[] sections, int index, int x, int y, int z, Ids ids) {
         if (x == 0 || x == 15 || z == 0 || z == 15) return true;
         return open(sections, index, x, y + 1, z, ids)
