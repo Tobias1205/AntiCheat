@@ -1,6 +1,7 @@
 package nl.shieldguard;
 
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import nl.shieldguard.protection.MaskManager;
 import nl.shieldguard.protection.ChunkPacketListener;
@@ -22,7 +23,7 @@ public final class ShieldGuard extends JavaPlugin {
     private MaskManager maskManager;
     private ReportManager reportManager;
     private ReportsGui reportsGui;
-    private ChunkPacketListener packetListener;
+    private PacketListenerCommon packetListener;
 
     @Override
     public void onEnable() {
@@ -33,8 +34,8 @@ public final class ShieldGuard extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new RevealListener(this, maskManager), this);
         maskManager.start();
 
-        packetListener = new ChunkPacketListener(maskManager);
-        PacketEvents.getAPI().getEventManager().registerListener(packetListener, PacketListenerPriority.HIGH);
+        packetListener = new ChunkPacketListener(maskManager).asAbstract(PacketListenerPriority.HIGH);
+        PacketEvents.getAPI().getEventManager().registerListener(packetListener);
 
         reportManager = new ReportManager(this);
         reportsGui = new ReportsGui(this, reportManager);
