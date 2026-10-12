@@ -1,0 +1,29 @@
+name: ShieldGuard
+version: '${project.version}'
+main: nl.shieldguard.ShieldGuard
+api-version: '1.21'
+description: Anti-freecam, anti-xray en reportsysteem
+depend: [packetevents]
+
+commands:
+  report:
+    description: Rapporteer een speler
+    usage: /report <speler> <reden>
+  reports:
+    description: Beheer reports (staff)
+    usage: /reports [list|view|tp|close|reload]
+    permission: shieldguard.reports.manage
+
+permissions:
+  shieldguard.report:
+    description: Spelers mogen reports indienen
+    default: true
+  shieldguard.reports.manage:
+    description: Reports bekijken en afhandelen
+    default: op
+  shieldguard.reports.notify:
+    description: Meldingen van nieuwe reports ontvangen
+    default: op
+  shieldguard.bypass:
+    description: Geen freecam/xray-masking (voor staff)
+    default: op
