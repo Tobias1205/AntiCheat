@@ -1,6 +1,6 @@
 # MinecraftGuard
 
-Paper 26.2 plugin met een `/report`-menu en voorzichtige bewegingsmeldingen voor staff.
+Paper 26.2 plugin met een `/report`-menu en voorzichtige bewegingsmeldingen voor staff. De build gebruikt de gepubliceerde Paper API-versie `26.2.build.129-stable`.
 
 ## Bouwen
 
