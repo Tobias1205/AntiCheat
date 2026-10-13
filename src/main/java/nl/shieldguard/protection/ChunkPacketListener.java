@@ -7,6 +7,7 @@ import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.protocol.world.chunk.BaseChunk;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
+import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockChange;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
@@ -160,7 +161,7 @@ public final class ChunkPacketListener implements PacketListener {
         Vector3i p = w.getBlockPosition();
         if (allow(st, p.getX(), p.getY(), p.getZ())) return;
 
-        w.setBlockId(ids.fillFor(p.getY()));
+        w.setBlockState(WrappedBlockState.getByGlobalId(user.getClientVersion(), ids.fillFor(p.getY())));
         event.markForReEncode(true);
     }
 
