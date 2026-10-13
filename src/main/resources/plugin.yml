@@ -1,29 +1,24 @@
-name: ShieldGuard
-version: '${project.version}'
-main: nl.shieldguard.ShieldGuard
-api-version: '1.21'
-description: Anti-freecam, anti-xray en reportsysteem
-depend: [packetevents]
-
+name: MinecraftGuard
+version: '0.1.0'
+main: nl.tobias.minecraftguard.MinecraftGuardPlugin
+api-version: '26.2'
+description: Reports and conservative server-side movement alerts for Paper.
+author: Tobias
 commands:
   report:
-    description: Rapporteer een speler
-    usage: /report <speler> <reden>
-  reports:
-    description: Beheer reports (staff)
-    usage: /reports [list|view|tp|close|reload]
-    permission: shieldguard.reports.manage
-
+    description: Open the player report menu.
+    usage: /report
+    permission: minecraftguard.report
+  guard:
+    description: MinecraftGuard administration.
+    usage: /guard alerts|reload
+    permission: minecraftguard.admin
 permissions:
-  shieldguard.report:
-    description: Spelers mogen reports indienen
+  minecraftguard.report:
     default: true
-  shieldguard.reports.manage:
-    description: Reports bekijken en afhandelen
+  minecraftguard.admin:
     default: op
-  shieldguard.reports.notify:
-    description: Meldingen van nieuwe reports ontvangen
+  minecraftguard.alerts:
     default: op
-  shieldguard.bypass:
-    description: Geen freecam/xray-masking (voor staff)
-    default: op
+  minecraftguard.bypass:
+    default: false
