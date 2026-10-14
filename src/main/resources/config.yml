@@ -125,6 +125,21 @@ movement:
   jesus:
     enabled: true
 
+# Combat heuristics only notify staff. They never cancel attacks, kick or ban.
+# A heuristic alert alone is not proof of cheating.
+combat:
+  enabled: true
+  alert-cooldown-seconds: 10
+  reach:
+    enabled: true
+    # Distance from the attacker's eye to the closest point on the target hitbox.
+    # Kept generous to reduce false positives from large hitboxes and latency.
+    max-distance: 3.85
+  swing-rate:
+    enabled: true
+    max-per-second: 30
+    window-seconds: 3
+
 reports:
   cooldown-seconds: 60
   min-reason-length: 4

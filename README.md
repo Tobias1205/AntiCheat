@@ -1,11 +1,11 @@
 # ShieldGuard
 
-Anti-freecam, anti-xray en een reportsysteem voor Paper 1.21.x.
+Anti-freecam, anti-xray, storage-ESP bescherming en een reportsysteem voor Paper 26.2.
 
 ## Installeren
 
-1. Zet de **PacketEvents**-plugin (spigot-versie, 2.7.0 of nieuwer) in `plugins/`.
-2. Bouw ShieldGuard: `mvn package` (Java 21). De jar staat daarna in `target/ShieldGuard-1.0.0.jar`.
+1. Zet de **PacketEvents**-plugin (Spigot/Paper-versie 2.14.0 of nieuwer) in `plugins/`.
+2. Bouw ShieldGuard: `mvn package` met Java 25. De JAR staat daarna in `target/ShieldGuard-1.0.0.jar`.
 3. Zet de jar in `plugins/`, start de server en pas `plugins/ShieldGuard/config.yml` aan
    (vooral `worlds:` — alleen overworld-achtige werelden!).
 
@@ -29,6 +29,8 @@ en vertrouwt de onGround-vlag van de client niet. Uitzonderingen: creative/spect
 ladders, ijs, slijm, honing, spinnenwebben, potions (levitation/slow falling/jump boost), knockback/explosies en teleports.
 Overtredingen geven strafpunten (VL) die vanzelf zakken: vanaf `setback-vl` wordt de speler teruggezet, vanaf `kick-vl` gekickt.
 Staff met `shieldguard.alerts` krijgt meldingen; `/shieldguard vl <speler>` toont de VL per check.
+
+**Combat-waarschuwingen** (`combat:` in config): meldt uitzonderlijk lange melee-hit-afstanden en aanhoudend extreem hoge arm-swing-aantallen. Deze signalen zijn heuristieken: ze melden alleen aan staff en stoppen of bestraffen niemand automatisch. `shieldguard.combat.bypass` sluit staff uit.
 
 **Reports**
 - `/report <speler> <reden>` — cooldown, geen dubbele reports, tab-completion op redenen
@@ -54,6 +56,7 @@ Fouten in de packet-code staan nu ook in de serverconsole.
 | `shieldguard.admin` | op | `/shieldguard status`, `reload` en `vl` |
 | `shieldguard.alerts` | op | meldingen van movement-hacks ontvangen |
 | `shieldguard.movement.bypass` | op | niet gecontroleerd worden op fly/speed |
+| `shieldguard.combat.bypass` | op | geen combatheuristiek-meldingen ontvangen |
 
 Let op: met `shieldguard.bypass` zie je gewoon alles. Test de bescherming dus met een account zonder die permission.
 
@@ -66,11 +69,17 @@ Alles staat in `config.yml`:
 - `storage-protection.hide-entities: false`: minecarts met kisten niet verbergen.
 - Na `/reports reload` worden de instellingen herladen (behalve `reveal-interval-ticks`: daarvoor even herstarten).
 
+## Technische basis
+
+`pom.xml` is ingesteld op Paper API `26.2.build.129-stable`, PacketEvents 2.14.0 en Java 25. De aangeleverde basiscode was oorspronkelijk geschreven voor Paper 1.21.x. Deze aangepaste broncode is hier niet met Paper 26.2 gecompileerd of op een server getest; voer na upload naar GitHub een Maven-build uit en controleer de serverconsole bij de eerste start.
+
 ## Bekende beperkingen
 
-- De movement-checks zijn bewust voorzichtig en vangen niet alles: geen KillAura/reach/scaffold/NoFall/phase, en geen
-  elytra-hacks. Begin met een hoge `kick-vl`, kijk een paar dagen naar de meldingen en stel `tolerance` en limieten bij.
-  Voor volledige dekking is een gespecialiseerde anticheat zoals GrimAC naast ShieldGuard verstandig.
+- De movement-checks zijn bewust voorzichtig en vangen niet alles: geen volledige KillAura-, aim-, scaffold-, NoFall-,
+  phase-, timer- of elytra-hack-detectie. De reach- en swingsignalen zijn alleen aanvullende heuristieken en vormen geen
+  bewijs. Begin met een hoge `kick-vl`, bekijk staffmeldingen en stel `tolerance` en limieten voorzichtig bij.
+- Geen enkele plugin kan letterlijk elke cheat detecteren; hacks kunnen onder drempels blijven of legitiem gedrag nabootsen.
+  Voor bredere packet-simulation-checks kun je GrimAC naast ShieldGuard gebruiken, eerst met meldingen en handmatige controle.
 - Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
 - Kleine reveal-vertraging (max ~0,25 s) bij het naderen van erts/kisten, door `reveal-interval-ticks`.
