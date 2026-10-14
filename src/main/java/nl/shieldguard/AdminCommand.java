@@ -1,8 +1,10 @@
 package nl.shieldguard;
 
+import nl.shieldguard.movement.MovementGuard;
 import nl.shieldguard.protection.MaskManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,15 +13,17 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 
-/** /shieldguard status | reload */
+/** /shieldguard status | reload | vl <speler> */
 public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private final ShieldGuard plugin;
     private final MaskManager masks;
+    private final MovementGuard movement;
 
-    public AdminCommand(ShieldGuard plugin, MaskManager masks) {
+    public AdminCommand(ShieldGuard plugin, MaskManager masks, MovementGuard movement) {
         this.plugin = plugin;
         this.masks = masks;
+        this.movement = movement;
     }
 
     @Override
@@ -32,6 +36,18 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
         if (sub.equals("reload")) {
             plugin.reload();
             sender.sendMessage(plugin.msg("reload-done"));
+            return true;
+        }
+        if (sub.equals("vl")) {
+            Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : null;
+            if (target == null) {
+                sender.sendMessage(Component.text("Gebruik: /shieldguard vl <speler> (speler moet online zijn)", NamedTextColor.RED));
+                return true;
+            }
+            sender.sendMessage(Component.text("Strafpunten van " + target.getName(), NamedTextColor.GOLD));
+            for (String line : movement.describe(target.getUniqueId())) {
+                sender.sendMessage(Component.text(line, NamedTextColor.GRAY));
+            }
             return true;
         }
         if (!(sender instanceof Player player)) {
@@ -47,6 +63,6 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return args.length == 1 ? List.of("status", "reload") : List.of();
+        return args.length == 1 ? List.of("status", "reload", "vl") : List.of();
     }
 }

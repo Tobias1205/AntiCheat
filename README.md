@@ -23,6 +23,13 @@ binnen `reveal-radius` (standaard 6 blokken) bent en er een vrije zichtlijn naar
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
 Minecarts met kisten/hoppers/spawners en chest-boats zijn per speler onzichtbaar tot ze dichtbij en in zicht zijn.
 
+**Beweging-anticheat** (`movement:` in config): detecteert fly (te hoog stijgen, zweven, onnatuurlijk langzaam vallen),
+speed (gemiddelde snelheid over 1 seconde) en jesus (over water lopen). De server kijkt zelf naar de blokken onder de speler
+en vertrouwt de onGround-vlag van de client niet. Uitzonderingen: creative/spectator, elytra, riptide, voertuigen, water, lava,
+ladders, ijs, slijm, honing, spinnenwebben, potions (levitation/slow falling/jump boost), knockback/explosies en teleports.
+Overtredingen geven strafpunten (VL) die vanzelf zakken: vanaf `setback-vl` wordt de speler teruggezet, vanaf `kick-vl` gekickt.
+Staff met `shieldguard.alerts` krijgt meldingen; `/shieldguard vl <speler>` toont de VL per check.
+
 **Reports**
 - `/report <speler> <reden>` — cooldown, geen dubbele reports, tab-completion op redenen
 - `/reports` — GUI met open reports (linksklik = teleporteren, rechtsklik = afsluiten)
@@ -44,7 +51,9 @@ Fouten in de packet-code staan nu ook in de serverconsole.
 | `shieldguard.reports.manage` | op | reports beheren |
 | `shieldguard.reports.notify` | op | meldingen ontvangen |
 | `shieldguard.bypass` | op | niet gemaskeerd worden |
-| `shieldguard.admin` | op | `/shieldguard status` en `reload` |
+| `shieldguard.admin` | op | `/shieldguard status`, `reload` en `vl` |
+| `shieldguard.alerts` | op | meldingen van movement-hacks ontvangen |
+| `shieldguard.movement.bypass` | op | niet gecontroleerd worden op fly/speed |
 
 Let op: met `shieldguard.bypass` zie je gewoon alles. Test de bescherming dus met een account zonder die permission.
 
@@ -58,6 +67,11 @@ Alles staat in `config.yml`:
 - Na `/reports reload` worden de instellingen herladen (behalve `reveal-interval-ticks`: daarvoor even herstarten).
 
 ## Bekende beperkingen
+
+- De movement-checks zijn bewust voorzichtig en vangen niet alles: geen KillAura/reach/scaffold/NoFall/phase, en geen
+  elytra-hacks. Begin met een hoge `kick-vl`, kijk een paar dagen naar de meldingen en stel `tolerance` en limieten bij.
+  Voor volledige dekking is een gespecialiseerde anticheat zoals GrimAC naast ShieldGuard verstandig.
+- Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
 - Kleine reveal-vertraging (max ~0,25 s) bij het naderen van erts/kisten, door `reveal-interval-ticks`.
 - Een overhang of boom boven een grot telt als "oppervlak": ondiepe grotten daaronder blijven binnen de marge zichtbaar.

@@ -3,6 +3,7 @@ package nl.shieldguard;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
+import nl.shieldguard.movement.MovementGuard;
 import nl.shieldguard.protection.MaskManager;
 import nl.shieldguard.protection.ChunkPacketListener;
 import nl.shieldguard.protection.Revealer;
@@ -22,6 +23,7 @@ public final class ShieldGuard extends JavaPlugin {
 
     private MaskManager maskManager;
     private Revealer revealer;
+    private MovementGuard movementGuard;
     private ReportManager reportManager;
     private ReportsGui reportsGui;
     private PacketListenerCommon packetListener;
@@ -38,6 +40,9 @@ public final class ShieldGuard extends JavaPlugin {
         getServer().getPluginManager().registerEvents(revealer, this);
         revealer.start();
 
+        movementGuard = new MovementGuard(this);
+        getServer().getPluginManager().registerEvents(movementGuard, this);
+
         packetListener = new ChunkPacketListener(maskManager).asAbstract(PacketListenerPriority.HIGH);
         PacketEvents.getAPI().getEventManager().registerListener(packetListener);
 
@@ -47,7 +52,7 @@ public final class ShieldGuard extends JavaPlugin {
 
         PluginCommand admin = getCommand("shieldguard");
         if (admin != null) {
-            AdminCommand ac = new AdminCommand(this, maskManager);
+            AdminCommand ac = new AdminCommand(this, maskManager, movementGuard);
             admin.setExecutor(ac);
             admin.setTabCompleter(ac);
         }
@@ -88,6 +93,7 @@ public final class ShieldGuard extends JavaPlugin {
     public void reload() {
         reloadConfig();
         maskManager.reloadSettings();
+        movementGuard.reload();
     }
 
     /** Bericht uit config.yml als Component (MiniMessage), inclusief prefix. */

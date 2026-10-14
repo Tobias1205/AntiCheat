@@ -96,6 +96,35 @@ storage-protection:
     - red_shulker_box
     - black_shulker_box
 
+# Beweging-anticheat: fly, speed en jesus (water lopen)
+movement:
+  enabled: true
+  # Leeg = alle werelden
+  worlds: []
+  # Strafpunten (VL) lopen vanzelf terug: -1 per zoveel seconden
+  vl-decay-seconds: 20
+  # Vanaf zoveel VL wordt de speler teruggezet naar zijn laatste veilige plek
+  setback-vl: 3
+  # Vanaf zoveel VL wordt de speler gekickt. Begin hoog en verlaag pas als je weinig valse meldingen ziet.
+  kick-vl: 30
+  fly:
+    enabled: true
+    # Max. stijging (blokken) sinds de laatste grond. Een gewone sprong is 1,25.
+    max-rise: 1.45
+    # Zoveel moves achter elkaar in de lucht zonder te dalen = zweven/vliegen
+    hover-moves: 12
+    # Hoeveel van de normale valsnelheid minimaal gehaald moet worden (0 = check uit)
+    glide-factor: 0.6
+  speed:
+    enabled: true
+    # Max. blokken/seconde gemiddeld over 1 seconde (sprinten / sprinten+springen)
+    ground-limit: 6.0
+    air-limit: 7.6
+    # Marge bovenop de limiet; hoger = minder valse meldingen, maar hacks met lage snelheid komen erdoor
+    tolerance: 1.12
+  jesus:
+    enabled: true
+
 reports:
   cooldown-seconds: 60
   min-reason-length: 4
@@ -115,6 +144,8 @@ reports:
   discord-webhook-url: ""
 
 messages:
+  movement-alert: "<dark_gray>[<red>SG</red>]</dark_gray> <white><player></white> <gray>faalde</gray> <red><check></red> <gray>(<info>) VL <vl></gray>"
+  movement-kick: "<red>Je bent gekickt wegens verdachte bewegingen (<check>).</red>"
   prefix: "<dark_gray>[<red>ShieldGuard</red>]</dark_gray> "
   no-permission: "<red>Daar heb je geen toestemming voor.</red>"
   players-only: "<red>Dit commando kan alleen door spelers worden gebruikt.</red>"

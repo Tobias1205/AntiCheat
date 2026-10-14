@@ -8,7 +8,7 @@ depend: [packetevents]
 commands:
   shieldguard:
     description: ShieldGuard status en beheer
-    usage: /shieldguard [status|reload]
+    usage: /shieldguard [status|reload|vl <speler>]
     aliases: [sg]
   report:
     description: Rapporteer een speler
@@ -19,6 +19,12 @@ commands:
     permission: shieldguard.reports.manage
 
 permissions:
+  shieldguard.alerts:
+    description: Meldingen van movement-hacks ontvangen
+    default: op
+  shieldguard.movement.bypass:
+    description: Geen fly/speed-checks (voor staff)
+    default: op
   shieldguard.admin:
     description: /shieldguard status en reload
     default: op
