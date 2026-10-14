@@ -107,7 +107,7 @@ public final class MaskManager implements Listener {
 
         xrayEnabled = cfg.getBoolean("xray-protection.enabled", true);
         hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", true);
-        oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 32));
+        oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 48));
 
         storageEnabled = cfg.getBoolean("storage-protection.enabled", true);
         hideEntities = storageEnabled && cfg.getBoolean("storage-protection.hide-entities", true);
