@@ -99,9 +99,9 @@ public final class MaskManager implements Listener {
         depth = Math.max(16, cfg.getInt("freecam-protection.depth-below-player", 32));
         surfaceMargin = Math.max(0, cfg.getInt("freecam-protection.surface-margin", 12));
         radius = Math.max(1, cfg.getInt("freecam-protection.refresh-radius-chunks", 8));
-        perRun = Math.max(1, cfg.getInt("freecam-protection.chunks-per-run", 6));
-        remaskGap = Math.max(16, cfg.getInt("freecam-protection.remask-gap-blocks", 32));
-        interval = Math.max(1, cfg.getInt("freecam-protection.refresh-interval-ticks", 10));
+        perRun = Math.max(1, cfg.getInt("freecam-protection.chunks-per-run", 8));
+        remaskGap = Math.max(8, cfg.getInt("freecam-protection.remask-gap-blocks", 8));
+        interval = Math.max(1, cfg.getInt("freecam-protection.refresh-interval-ticks", 2));
 
         xrayEnabled = cfg.getBoolean("xray-protection.enabled", true);
         hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", true);

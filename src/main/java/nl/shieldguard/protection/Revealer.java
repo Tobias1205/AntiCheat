@@ -119,8 +119,9 @@ public final class Revealer implements Listener {
                 if (cur != st.lastBlock || periodic) {
                     st.lastBlock = cur;
                     scanBlocks(p, st, w, eye);
-                    prune(st);
                 }
+                // Remove client-side ore/storage reveals promptly when the player walks away.
+                remaskOutOfRange(p, st, w);
             }
         }
     }
@@ -252,17 +253,40 @@ public final class Revealer implements Listener {
         return hit != null && target.equals(hit.getHitBlock());
     }
 
-    /** Onthulde posities ver van de speler weer vergeten (zodat een herlaadde chunk ze weer verbergt). */
-    private void prune(MaskManager.State st) {
-        int keep = Math.max(masks.oreRadius(), masks.storageRadius()) + 12;
-        long keep2 = (long) keep * keep;
+    /** Replaces previously revealed blocks with the configured fake stone once outside reveal range. */
+    private void remaskOutOfRange(Player p, MaskManager.State st, World w) {
+        int oreRadius = masks.oreRadius();
+        int storageRadius = masks.storageRadius();
         Iterator<Long> it = st.revealed.keySet().iterator();
         while (it.hasNext()) {
-            long k = it.next();
-            long dx = MaskManager.posX(k) - st.x;
-            long dy = MaskManager.posY(k) - st.y;
-            long dz = MaskManager.posZ(k) - st.z;
-            if (dx * dx + dy * dy + dz * dz > keep2) it.remove();
+            long key = it.next();
+            int x = MaskManager.posX(key);
+            int y = MaskManager.posY(key);
+            int z = MaskManager.posZ(key);
+            long dx = (long) x - st.x;
+            long dy = (long) y - st.y;
+            long dz = (long) z - st.z;
+            Block block = null;
+            boolean isOre = false;
+            boolean isStorage = false;
+            if (w.isChunkLoaded(x >> 4, z >> 4) && y >= w.getMinHeight() && y < w.getMaxHeight()) {
+                block = w.getBlockAt(x, y, z);
+                isOre = masks.oreMaterials().contains(block.getType());
+                isStorage = masks.storageMaterials().contains(block.getType());
+            }
+            if (!isOre && !isStorage) {
+                it.remove();
+                if (block != null) p.sendBlockChange(block.getLocation(), block.getBlockData());
+                continue;
+            }
+            int range = isOre ? oreRadius : storageRadius;
+            if (range > 0 && dx * dx + dy * dy + dz * dz <= (long) range * range) continue;
+
+            it.remove();
+            if (block != null) {
+                Material fake = y < 0 ? Material.DEEPSLATE : Material.STONE;
+                p.sendBlockChange(block.getLocation(), fake.createBlockData());
+            }
         }
     }
 }

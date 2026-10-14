@@ -21,11 +21,11 @@ freecam-protection:
   surface-margin: 12
   # Hoe ver (in chunks) om de speler heen we chunks opnieuw sturen als de grens verschuift
   refresh-radius-chunks: 8
-  refresh-interval-ticks: 10
+  refresh-interval-ticks: 2
   # Maximaal aantal chunk-refreshes per speler per run (voorkomt lag)
-  chunks-per-run: 6
-  # Pas opnieuw maskeren als de speler minstens zoveel blokken omhoog is gegaan
-  remask-gap-blocks: 32
+  chunks-per-run: 8
+  # Pas opnieuw maskeren zodra de speler voldoende hoger is gekomen
+  remask-gap-blocks: 8
 
 xray-protection:
   enabled: true

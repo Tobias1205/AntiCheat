@@ -18,7 +18,7 @@ Ga je omlaag, dan worden de chunks om je heen automatisch opnieuw verstuurd met 
 
 **Anti-xray**: ALLE erts (ook in grotten) is voor de client stone/deepslate. Zichtbare grotaders worden getoond
 binnen `reveal-radius` (standaard 12 blokken) als er een vrije zichtlijn is. Door muren heen zien kan dus niet.
-De controle draait elke 2 ticks (0,1 seconde), waardoor nepblokken sneller worden bijgewerkt wanneer je door een grot loopt.
+De controle draait elke 2 ticks (0,1 seconde). Als je buiten het zichtbereik loopt, wordt het echte blok opnieuw als stone/deepslate verstuurd.
 
 **Anti storage-ESP**: kisten, trapped chests, ender chests, barrels, hoppers, droppers, dispensers, crafters, ovens,
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
@@ -83,6 +83,7 @@ Alles staat in `config.yml`:
   Voor bredere packet-simulation-checks kun je GrimAC naast ShieldGuard gebruiken, eerst met meldingen en handmatige controle.
 - Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
-- Kleine reveal-vertraging (standaard max ~0,1 s) bij het naderen van erts/kisten, door `reveal-interval-ticks`.
+- Kleine reveal/remask-vertraging (standaard max ~0,1 s) bij het naderen of verlaten van erts/kisten, door `reveal-interval-ticks`.
+- De freecam-chunks worden elke 2 ticks ververst (maximaal 8 chunks per speler per run); na 8 blokken stijgen kan de maskering terugschuiven.
 - Een overhang of boom boven een grot telt als "oppervlak": ondiepe grotten daaronder blijven binnen de marge zichtbaar.
 - Erts of kisten achter glas of bladeren worden pas getoond als de zichtlijn vrij is.
