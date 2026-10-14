@@ -8,7 +8,7 @@ worlds:
 bypass-permission: shieldguard.bypass
 
 # Hoe vaak (in ticks) gekeken wordt welke verborgen blokken/minecarts je nu mag zien
-reveal-interval-ticks: 5
+reveal-interval-ticks: 2
 
 freecam-protection:
   enabled: true
@@ -32,9 +32,10 @@ xray-protection:
   # true  = ALLE erts is verborgen (ook in grotten) tot je er dichtbij bent en het kunt zien
   # false = erts dat aan lucht/water/lava grenst blijft gewoon zichtbaar
   hide-exposed-ores: true
-  # Erts binnen dit aantal blokken en in zicht wordt getoond. 0 = nooit tonen (je ziet pas wat je
+  # Erts binnen dit aantal blokken en in zicht wordt getoond. Groter bereik maakt zichtbare
+  # grotaders eerder zichtbaar; door muren heen blijft verborgen. 0 = nooit tonen (je ziet pas wat je
   # hebt gevonden zodra je het stuk hebt gemined; wel vervelend voor spelers).
-  reveal-radius: 6
+  reveal-radius: 12
   hidden-blocks:
     - coal_ore
     - deepslate_coal_ore
@@ -103,16 +104,20 @@ movement:
   worlds: []
   # Strafpunten (VL) lopen vanzelf terug: -1 per zoveel seconden
   vl-decay-seconds: 20
-  # Vanaf zoveel VL wordt de speler teruggezet naar zijn laatste veilige plek
+  # Setbacks vinden alleen op veilige grond plaats; spelers in een sprong of val worden niet teruggezet.
   setback-vl: 3
+  # Geen setback als het checkpoint te ver van de speler af ligt.
+  setback-max-distance: 4.0
+  # Hoe vaak een veilig grond-checkpoint wordt bijgewerkt.
+  setback-checkpoint-interval-ms: 250
   # Vanaf zoveel VL wordt de speler gekickt. Begin hoog en verlaag pas als je weinig valse meldingen ziet.
   kick-vl: 30
   fly:
     enabled: true
     # Max. stijging (blokken) sinds de laatste grond. Een gewone sprong is 1,25.
     max-rise: 1.45
-    # Zoveel moves achter elkaar in de lucht zonder te dalen = zweven/vliegen
-    hover-moves: 12
+    # Zweven wordt op verstreken tijd gemeten, niet op het aantal position-events.
+    hover-duration-ms: 1200
     # Hoeveel van de normale valsnelheid minimaal gehaald moet worden (0 = check uit)
     glide-factor: 0.6
   speed:

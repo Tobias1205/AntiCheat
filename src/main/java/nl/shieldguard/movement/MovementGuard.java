@@ -65,7 +65,8 @@ public final class MovementGuard implements Listener {
     private boolean enabled, flyOn, jesusOn, speedOn;
     private Set<String> worlds = Set.of();
     private double setbackVl, kickVl, maxRise, glideFactor, groundLimit, airLimit, tolerance;
-    private int hoverMoves, decaySeconds;
+    private double maxSetbackDistance;
+    private int hoverDurationMs, decaySeconds, checkpointIntervalMs;
 
     private static final class Data {
         Location lastGround;
@@ -76,8 +77,13 @@ public final class MovementGuard implements Listener {
         long lastFlagMs;
         long lastAlertMs;
         long lastDecayMs;
-        int airTicks, nonDescending, fallTicks, jesus, speedBuf, winAir;
-        double groundY, winDist;
+        long nonDescendingSinceNanos;
+        long fallSampleNanos;
+        long lastGroundUpdateMs;
+        boolean leftGround;
+        boolean canSetback;
+        int airTicks, jesus, speedBuf, winAir;
+        double groundY, fallSampleY, winDist;
         long winStart;
         final Map<String, Double> vl = new HashMap<>();
     }
@@ -93,10 +99,12 @@ public final class MovementGuard implements Listener {
         worlds = new HashSet<>(c.getStringList("movement.worlds"));
         setbackVl = c.getDouble("movement.setback-vl", 3.0);
         kickVl = c.getDouble("movement.kick-vl", 30.0);
+        maxSetbackDistance = Math.max(0.0, c.getDouble("movement.setback-max-distance", 4.0));
+        checkpointIntervalMs = Math.max(50, c.getInt("movement.setback-checkpoint-interval-ms", 250));
         decaySeconds = Math.max(1, c.getInt("movement.vl-decay-seconds", 20));
         flyOn = c.getBoolean("movement.fly.enabled", true);
         maxRise = c.getDouble("movement.fly.max-rise", 1.45);
-        hoverMoves = Math.max(8, c.getInt("movement.fly.hover-moves", 12));
+        hoverDurationMs = Math.max(500, c.getInt("movement.fly.hover-duration-ms", 1200));
         glideFactor = c.getDouble("movement.fly.glide-factor", 0.6);
         jesusOn = c.getBoolean("movement.jesus.enabled", true);
         speedOn = c.getBoolean("movement.speed.enabled", true);
@@ -139,10 +147,13 @@ public final class MovementGuard implements Listener {
     private static void reset(Data d, Location to) {
         d.airTicks = 0;
         d.groundY = to.getY();
-        d.nonDescending = 0;
-        d.fallTicks = 0;
+        d.nonDescendingSinceNanos = 0;
+        d.fallSampleNanos = 0;
         d.jesus = 0;
         d.speedBuf = 0;
+        d.leftGround = false;
+        d.canSetback = onGround(to);
+        d.lastGroundUpdateMs = now();
         resetWindow(d);
     }
 
@@ -242,16 +253,33 @@ public final class MovementGuard implements Listener {
         long nowN = System.nanoTime();
         decay(d, nowMs);
 
+        boolean fromGround = onGround(from);
         boolean ground = onGround(to);
         if (isExempt(p, d, nowMs)) {
             reset(d, to);
-            if (ground) d.lastGround = to.clone();
+            if (ground) {
+                d.lastGround = to.clone();
+                d.lastGroundUpdateMs = nowMs;
+            }
             d.lastMoveNanos = nowN;
             return;
         }
 
         if (nearSpecial(to)) d.specialUntil = nowMs + 2000;
         boolean special = nowMs < d.specialUntil;
+        boolean landed = ground && d.leftGround;
+        if (ground) {
+            d.leftGround = false;
+        } else if (fromGround) {
+            // Keep track of legitimate jumps and running off an edge. Never setback while airborne.
+            d.leftGround = true;
+        }
+        d.canSetback = ground && !special && !d.leftGround;
+        if (d.canSetback && (landed || d.lastGround == null || d.lastGround.getWorld() != to.getWorld()
+                || nowMs - d.lastGroundUpdateMs >= checkpointIntervalMs)) {
+            d.lastGround = to.clone();
+            d.lastGroundUpdateMs = nowMs;
+        }
         double hDist = Math.hypot(dx, dz);
 
         // Lang stil/lag-piek: tempo-venster opnieuw beginnen
@@ -263,13 +291,12 @@ public final class MovementGuard implements Listener {
         if (ground || special) {
             d.airTicks = 0;
             d.groundY = to.getY();
-            d.nonDescending = 0;
-            d.fallTicks = 0;
+            d.nonDescendingSinceNanos = 0;
+            d.fallSampleNanos = 0;
             if (special) resetWindow(d);
-            if (ground && !special && nowMs - d.lastFlagMs > 3000) d.lastGround = to.clone();
         } else {
             d.airTicks++;
-            if (flyOn && checkFly(p, d, e, to, dy)) return;
+            if (flyOn && checkFly(p, d, e, to, dy, nowN)) return;
         }
 
         if (speedOn && !special) checkSpeed(p, d, e, ground, hDist, nowN);
@@ -292,23 +319,37 @@ public final class MovementGuard implements Listener {
         return false;
     }
 
-    private boolean checkFly(Player p, Data d, PlayerMoveEvent e, Location to, double dy) {
+    private boolean checkFly(Player p, Data d, PlayerMoveEvent e, Location to, double dy, long nowN) {
         double rise = to.getY() - d.groundY;
         if (rise > maxRise) {
             return flag(p, d, e, "fly", "stijgt " + fmt(rise) + " blokken zonder grond", 2.0);
         }
         if (dy >= -0.01) {
-            d.fallTicks = 0;
-            if (++d.nonDescending > hoverMoves) {
-                return flag(p, d, e, "fly", "zweeft/stijgt " + d.nonDescending + " moves", 1.0);
+            if (dy > 0.01) d.fallSampleNanos = 0;
+            if (d.nonDescendingSinceNanos == 0) d.nonDescendingSinceNanos = nowN;
+            long hoverNanos = (long) hoverDurationMs * 1_000_000L;
+            if (nowN - d.nonDescendingSinceNanos >= hoverNanos) {
+                return flag(p, d, e, "fly", "blijft " + (hoverDurationMs / 1000.0)
+                        + " seconden in de lucht zonder te dalen", 1.0);
             }
         } else {
-            d.nonDescending = 0;
-            d.fallTicks++;
-            if (glideFactor > 0 && d.fallTicks >= 5) {
-                double expected = -3.92 * (1 - Math.pow(0.98, d.fallTicks)); // vanilla valsnelheid per tick
-                if (dy > expected * glideFactor) {
-                    return flag(p, d, e, "fly", "valt te langzaam (" + fmt(dy) + " i.p.v. " + fmt(expected) + ")", 1.0);
+            d.nonDescendingSinceNanos = 0;
+            if (d.fallSampleNanos == 0) {
+                d.fallSampleNanos = nowN;
+                d.fallSampleY = to.getY();
+            } else {
+                long elapsedNanos = nowN - d.fallSampleNanos;
+                if (glideFactor > 0 && elapsedNanos >= 250_000_000L) {
+                    double elapsedTicks = elapsedNanos / 50_000_000.0;
+                    // Expected vanilla fall displacement over the sample interval, independent of packet count.
+                    double expectedDrop = 3.92 * (elapsedTicks - (1 - Math.pow(0.98, elapsedTicks)) / 0.02);
+                    double actualDrop = d.fallSampleY - to.getY();
+                    if (expectedDrop >= 0.20 && actualDrop < expectedDrop * glideFactor) {
+                        return flag(p, d, e, "fly", "valt te langzaam over " + fmt(elapsedTicks)
+                                + " ticks (" + fmt(actualDrop) + " van verwacht " + fmt(expectedDrop) + " blokken)", 1.0);
+                    }
+                    d.fallSampleNanos = nowN;
+                    d.fallSampleY = to.getY();
                 }
             }
         }
@@ -370,7 +411,11 @@ public final class MovementGuard implements Listener {
         }
 
         Location back = d.lastGround;
-        if (vl >= setbackVl && back != null && back.getWorld().equals(e.getTo().getWorld())) {
+        Location current = e.getTo();
+        double setbackDistanceSquared = maxSetbackDistance * maxSetbackDistance;
+        if (vl >= setbackVl && d.canSetback && back != null && current != null
+                && back.getWorld().equals(current.getWorld()) && onGround(back) && onGround(current)
+                && back.distanceSquared(current) <= setbackDistanceSquared) {
             d.ignoreTeleportUntil = nowMs + 500;
             e.setTo(back.clone());
             reset(d, back);

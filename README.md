@@ -16,8 +16,9 @@ blokken die dieper liggen dan (jouw Y - 32) **én** dieper dan (terreinoppervlak
 gewoon de echte vallei onder je; het masker volgt het terrein in plaats van een vlak stuk stone te zijn.
 Ga je omlaag, dan worden de chunks om je heen automatisch opnieuw verstuurd met de echte blokken.
 
-**Anti-xray**: ALLE erts (ook in grotten) is voor de client stone/deepslate. Erts wordt pas getoond als je er
-binnen `reveal-radius` (standaard 6 blokken) bent en er een vrije zichtlijn naartoe is. Door muren heen zien kan dus niet.
+**Anti-xray**: ALLE erts (ook in grotten) is voor de client stone/deepslate. Zichtbare grotaders worden getoond
+binnen `reveal-radius` (standaard 12 blokken) als er een vrije zichtlijn is. Door muren heen zien kan dus niet.
+De controle draait elke 2 ticks (0,1 seconde), waardoor nepblokken sneller worden bijgewerkt wanneer je door een grot loopt.
 
 **Anti storage-ESP**: kisten, trapped chests, ender chests, barrels, hoppers, droppers, dispensers, crafters, ovens,
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
@@ -27,7 +28,7 @@ Minecarts met kisten/hoppers/spawners en chest-boats zijn per speler onzichtbaar
 speed (gemiddelde snelheid over 1 seconde) en jesus (over water lopen). De server kijkt zelf naar de blokken onder de speler
 en vertrouwt de onGround-vlag van de client niet. Uitzonderingen: creative/spectator, elytra, riptide, voertuigen, water, lava,
 ladders, ijs, slijm, honing, spinnenwebben, potions (levitation/slow falling/jump boost), knockback/explosies en teleports.
-Overtredingen geven strafpunten (VL) die vanzelf zakken: vanaf `setback-vl` wordt de speler teruggezet, vanaf `kick-vl` gekickt.
+Overtredingen geven strafpunten (VL) die vanzelf zakken. Een speler wordt alleen teruggezet als die op stabiele grond staat en het veilige checkpoint maximaal `setback-max-distance` blokken weg is. Tijdens een sprong of val wordt geen setback uitgevoerd. De hovercheck meet verstreken tijd (`hover-duration-ms`) in plaats van losse packet/move-events, zodat snel van een rand afrennen niet als zweven wordt geteld. Vanaf `kick-vl` kan nog wel een kick volgen; stel die drempel voorzichtig af.
 Staff met `shieldguard.alerts` krijgt meldingen; `/shieldguard vl <speler>` toont de VL per check.
 
 **Combat-waarschuwingen** (`combat:` in config): meldt uitzonderlijk lange melee-hit-afstanden en aanhoudend extreem hoge arm-swing-aantallen. Deze signalen zijn heuristieken: ze melden alleen aan staff en stoppen of bestraffen niemand automatisch. `shieldguard.combat.bypass` sluit staff uit.
@@ -82,6 +83,6 @@ Alles staat in `config.yml`:
   Voor bredere packet-simulation-checks kun je GrimAC naast ShieldGuard gebruiken, eerst met meldingen en handmatige controle.
 - Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
-- Kleine reveal-vertraging (max ~0,25 s) bij het naderen van erts/kisten, door `reveal-interval-ticks`.
+- Kleine reveal-vertraging (standaard max ~0,1 s) bij het naderen van erts/kisten, door `reveal-interval-ticks`.
 - Een overhang of boom boven een grot telt als "oppervlak": ondiepe grotten daaronder blijven binnen de marge zichtbaar.
 - Erts of kisten achter glas of bladeren worden pas getoond als de zichtlijn vrij is.

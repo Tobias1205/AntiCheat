@@ -54,7 +54,7 @@ public final class Revealer implements Listener {
     }
 
     public void start() {
-        int interval = Math.max(1, plugin.getConfig().getInt("reveal-interval-ticks", 5));
+        int interval = Math.max(1, plugin.getConfig().getInt("reveal-interval-ticks", 2));
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, interval);
     }
 
