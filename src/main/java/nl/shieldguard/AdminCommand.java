@@ -1,0 +1,52 @@
+package nl.shieldguard;
+
+import nl.shieldguard.protection.MaskManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
+
+import java.util.List;
+
+/** /shieldguard status | reload */
+public final class AdminCommand implements CommandExecutor, TabCompleter {
+
+    private final ShieldGuard plugin;
+    private final MaskManager masks;
+
+    public AdminCommand(ShieldGuard plugin, MaskManager masks) {
+        this.plugin = plugin;
+        this.masks = masks;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission("shieldguard.admin")) {
+            sender.sendMessage(plugin.msg("no-permission"));
+            return true;
+        }
+        String sub = args.length == 0 ? "status" : args[0].toLowerCase();
+        if (sub.equals("reload")) {
+            plugin.reload();
+            sender.sendMessage(plugin.msg("reload-done"));
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.msg("players-only"));
+            return true;
+        }
+        player.sendMessage(Component.text("ShieldGuard status", NamedTextColor.GOLD));
+        for (String line : masks.describe(player)) {
+            player.sendMessage(Component.text(line, NamedTextColor.GRAY));
+        }
+        return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        return args.length == 1 ? List.of("status", "reload") : List.of();
+    }
+}

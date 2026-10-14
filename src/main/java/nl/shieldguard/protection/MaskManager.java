@@ -17,6 +17,7 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 /**
  * Houdt per speler bij waar hij is en welke "diepte-grens" hij nodig heeft,
@@ -228,6 +231,71 @@ public final class MaskManager implements Listener {
         int c = Math.floorDiv(st.y - depth, 16) * 16;
         if (c <= st.minY) return NO_MASK;
         return c;
+    }
+
+    // ------------------------------------------------------------ diagnose
+
+    public final AtomicLong chunksSeen = new AtomicLong();
+    public final AtomicLong chunksModified = new AtomicLong();
+    public final AtomicLong blocksFilled = new AtomicLong();
+    public final AtomicLong oresHidden = new AtomicLong();
+    public final AtomicLong storageHidden = new AtomicLong();
+    public final AtomicLong errors = new AtomicLong();
+    private volatile String lastError = "-";
+
+    /** Fouten in de packet-code zichtbaar maken (PacketEvents slikt ze anders stil in). */
+    public void reportError(String where, Throwable t) {
+        long n = errors.incrementAndGet();
+        lastError = where + ": " + t;
+        if (n <= 5) {
+            plugin.getLogger().log(Level.SEVERE,
+                    "Fout in " + where + " - de bescherming werkt hierdoor NIET voor dit packet", t);
+        }
+    }
+
+    public void logStartup() {
+        StringBuilder existing = new StringBuilder();
+        for (World w : Bukkit.getWorlds()) {
+            if (existing.length() > 0) existing.append(", ");
+            existing.append(w.getName());
+        }
+        plugin.getLogger().info("Beschermde werelden (config): " + worlds + " | bestaande werelden: " + existing);
+        for (String name : worlds) {
+            if (Bukkit.getWorld(name) == null) {
+                plugin.getLogger().warning("Wereld '" + name + "' uit config.yml bestaat niet!");
+            }
+        }
+        plugin.getLogger().info("Verborgen: " + oreMaterials.size() + " soorten erts, "
+                + storageMaterials.size() + " soorten storage. Freecam-masker aan: " + freecamEnabled);
+        plugin.getLogger().info("Let op: spelers met permission '" + bypassPermission
+                + "' (standaard alle OPs) zien alles ongemaskeerd.");
+    }
+
+    /** Regels voor /shieldguard status. */
+    public List<String> describe(Player p) {
+        List<String> out = new ArrayList<>();
+        State st = states.get(p.getUniqueId());
+        boolean bypass = p.hasPermission(bypassPermission);
+        out.add("Jouw wereld: " + p.getWorld().getName() + " | beschermd volgens config: "
+                + worlds.contains(p.getWorld().getName()));
+        out.add("Bypass-permission (" + bypassPermission + "): " + bypass
+                + (bypass ? "  <-- DAAROM ZIE JIJ ALLES. Haal de permission weg of deop jezelf om te testen." : ""));
+        if (st == null) {
+            out.add("Geen speler-status gevonden (relog).");
+        } else {
+            int c = cutoff(st);
+            out.add("Jouw Y: " + st.y + " | actief voor jou: " + (st.enabled && !st.bypass)
+                    + " | freecam-grens: " + (c == NO_MASK ? "geen" : "Y<" + c)
+                    + " | onthulde blokken: " + st.revealed.size() + " | chunks onthouden: " + st.sent.size());
+        }
+        out.add("Instellingen: freecam=" + freecamEnabled + " (diepte " + depth + ", marge " + surfaceMargin
+                + "), erts=" + oreMaterials.size() + " soorten (radius " + oreRadius
+                + "), storage=" + storageMaterials.size() + " soorten (radius " + storageRadius + ")");
+        out.add("Packets sinds start: chunks gezien=" + chunksSeen.get() + ", aangepast=" + chunksModified.get()
+                + ", blokken gevuld=" + blocksFilled.get() + ", erts verborgen=" + oresHidden.get()
+                + ", storage verborgen=" + storageHidden.get());
+        out.add("Fouten in packet-code: " + errors.get() + " | laatste: " + lastError);
+        return out;
     }
 
     // ---------------------------------------------------------------- events

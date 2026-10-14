@@ -45,6 +45,14 @@ public final class ShieldGuard extends JavaPlugin {
         reportsGui = new ReportsGui(this, reportManager);
         getServer().getPluginManager().registerEvents(reportsGui, this);
 
+        PluginCommand admin = getCommand("shieldguard");
+        if (admin != null) {
+            AdminCommand ac = new AdminCommand(this, maskManager);
+            admin.setExecutor(ac);
+            admin.setTabCompleter(ac);
+        }
+        maskManager.logStartup();
+
         PluginCommand report = getCommand("report");
         if (report != null) {
             ReportCommand rc = new ReportCommand(this, reportManager);

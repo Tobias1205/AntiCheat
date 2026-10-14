@@ -35,6 +35,14 @@ public final class ChunkPacketListener implements PacketListener {
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
+        try {
+            dispatch(event);
+        } catch (Throwable t) {
+            masks.reportError("packet " + event.getPacketType(), t);
+        }
+    }
+
+    private void dispatch(PacketSendEvent event) {
         if (event.getPacketType() == PacketType.Play.Server.CHUNK_DATA) {
             handleChunk(event);
         } else if (event.getPacketType() == PacketType.Play.Server.UNLOAD_CHUNK) {
@@ -59,6 +67,7 @@ public final class ChunkPacketListener implements PacketListener {
         MaskManager.State st = masks.state(user.getUUID());
         if (st == null || !masks.active(st)) return;
 
+        masks.chunksSeen.incrementAndGet();
         WrapperPlayServerChunkData wrapper = new WrapperPlayServerChunkData(event);
         Column column = wrapper.getColumn();
         long chunkKey = MaskManager.key(column.getX(), column.getZ());
@@ -81,6 +90,7 @@ public final class ChunkPacketListener implements PacketListener {
 
         // Oppervlakte per kolom bepalen vóórdat we iets aanpassen.
         int[] surface = cutoff != MaskManager.NO_MASK ? surface(sections, minY, ids) : null;
+        long filled = 0, ores = 0, storage = 0;
 
         for (int i = 0; i < sections.length; i++) {
             BaseChunk section = sections[i];
@@ -100,6 +110,7 @@ public final class ChunkPacketListener implements PacketListener {
                         int y = y0 + ly;
                         if (y < limit) {
                             section.set(version, lx, ly, lz, ids.fillFor(y));
+                            filled++;
                             continue;
                         }
                         if (!hide) continue;
@@ -108,11 +119,17 @@ public final class ChunkPacketListener implements PacketListener {
                         if (cls == Ids.ORE && !hideExposed && exposed(sections, i, lx, ly, lz, ids)) continue;
                         if (st.revealed.containsKey(MaskManager.pos(baseX + lx, y, baseZ + lz))) continue;
                         section.set(version, lx, ly, lz, ids.fillFor(y));
+                        if (cls == Ids.ORE) ores++;
+                        else storage++;
                     }
                 }
             }
         }
 
+        masks.chunksModified.incrementAndGet();
+        masks.blocksFilled.addAndGet(filled);
+        masks.oresHidden.addAndGet(ores);
+        masks.storageHidden.addAndGet(storage);
         st.sent.put(chunkKey, cutoff);
         event.markForReEncode(true);
     }
