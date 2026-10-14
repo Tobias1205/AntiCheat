@@ -89,6 +89,6 @@ Alles staat in `config.yml`:
 - Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
 - Kleine reveal/remask-vertraging (standaard max ~0,1 s) bij het naderen of verlaten van erts/kisten, door `reveal-interval-ticks`.
-- De freecam-chunks worden elke 2 ticks ververst (maximaal 8 chunks per speler per run); na 8 blokken stijgen kan de maskering terugschuiven.
+- De freecam-chunks worden geleidelijk ververst (elke 5 ticks maximaal 2 chunks per speler) om zichtbare laadgaten door refresh-pieken te beperken; na 8 blokken stijgen kan de maskering terugschuiven.
 - Een overhang of boom boven een grot telt als "oppervlak": ondiepe grotten daaronder blijven binnen de marge zichtbaar.
 - Erts of kisten achter glas of bladeren worden pas getoond als de zichtlijn vrij is.
