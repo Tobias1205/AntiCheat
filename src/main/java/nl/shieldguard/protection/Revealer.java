@@ -47,6 +47,7 @@ public final class Revealer implements Listener {
     private final MaskManager masks;
     private BukkitTask task;
     private int runCounter;
+    private long scanCooldownNanos;
 
     public Revealer(ShieldGuard plugin, MaskManager masks) {
         this.plugin = plugin;
@@ -55,6 +56,8 @@ public final class Revealer implements Listener {
 
     public void start() {
         int interval = Math.max(1, plugin.getConfig().getInt("reveal-interval-ticks", 2));
+        int scanCooldownTicks = Math.max(1, plugin.getConfig().getInt("reveal-scan-cooldown-ticks", 10));
+        scanCooldownNanos = scanCooldownTicks * 50_000_000L;
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, interval);
     }
 
@@ -99,7 +102,7 @@ public final class Revealer implements Listener {
 
     private void tick() {
         runCounter++;
-        boolean periodic = runCounter % 8 == 0;
+        boolean periodic = runCounter % 4 == 0;
         Map<World, java.util.Collection<Entity>> entityCache = new HashMap<>();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -116,12 +119,15 @@ public final class Revealer implements Listener {
             if (masks.blocksHidden(st)) {
                 long cur = MaskManager.pos(p.getLocation().getBlockX(), p.getLocation().getBlockY(),
                         p.getLocation().getBlockZ());
-                if (cur != st.lastBlock || periodic) {
+                long now = System.nanoTime();
+                if ((cur != st.lastBlock || periodic)
+                        && now - st.lastRevealScanNanos >= scanCooldownNanos) {
                     st.lastBlock = cur;
+                    st.lastRevealScanNanos = now;
                     scanBlocks(p, st, w, eye);
                 }
                 // Remove client-side ore/storage reveals promptly when the player walks away.
-                remaskOutOfRange(p, st, w);
+                remaskOutOfRange(p, st, w, eye);
             }
         }
     }
@@ -254,7 +260,7 @@ public final class Revealer implements Listener {
     }
 
     /** Replaces previously revealed blocks with the configured fake stone once outside reveal range. */
-    private void remaskOutOfRange(Player p, MaskManager.State st, World w) {
+    private void remaskOutOfRange(Player p, MaskManager.State st, World w, Location eye) {
         int oreRadius = masks.oreRadius();
         int storageRadius = masks.storageRadius();
         Iterator<Long> it = st.revealed.keySet().iterator();
@@ -280,7 +286,8 @@ public final class Revealer implements Listener {
                 continue;
             }
             int range = isOre ? oreRadius : storageRadius;
-            if (range > 0 && dx * dx + dy * dy + dz * dz <= (long) range * range) continue;
+            if (range > 0 && dx * dx + dy * dy + dz * dz <= (long) range * range
+                    && hasOpenNeighbor(block) && visible(w, eye, block)) continue;
 
             it.remove();
             if (block != null) {

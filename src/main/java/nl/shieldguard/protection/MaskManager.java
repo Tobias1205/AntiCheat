@@ -53,6 +53,7 @@ public final class MaskManager implements Listener {
         // Alleen main thread:
         public final Set<UUID> shownEntities = new HashSet<>();
         public long lastBlock = Long.MIN_VALUE;
+        public long lastRevealScanNanos;
         final ArrayDeque<Long> queue = new ArrayDeque<>();
         final Set<Long> queued = new HashSet<>();
         long lastScanSignature = Long.MIN_VALUE;
@@ -105,8 +106,8 @@ public final class MaskManager implements Listener {
         interval = Math.max(1, cfg.getInt("freecam-protection.refresh-interval-ticks", 2));
 
         xrayEnabled = cfg.getBoolean("xray-protection.enabled", true);
-        hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", false);
-        oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 6));
+        hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", true);
+        oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 32));
 
         storageEnabled = cfg.getBoolean("storage-protection.enabled", true);
         hideEntities = storageEnabled && cfg.getBoolean("storage-protection.hide-entities", true);

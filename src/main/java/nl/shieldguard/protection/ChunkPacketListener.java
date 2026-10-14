@@ -106,11 +106,6 @@ public final class ChunkPacketListener implements PacketListener {
                     for (int ly = 0; ly < 16; ly++) {
                         int y = y0 + ly;
                         if (y < limit) {
-                            // Cave-exposed normal ores remain visible even if they fall below the
-                            // freecam depth mask. Special always-hidden blocks never take this path.
-                            byte belowClass = ids.classify(section.getBlockId(lx, ly, lz));
-                            if (belowClass == Ids.ORE && !hideExposed
-                                    && exposed(sections, i, lx, ly, lz, ids)) continue;
                             section.set(version, lx, ly, lz, ids.fillFor(y));
                             filled++;
                             continue;

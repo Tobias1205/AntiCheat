@@ -16,11 +16,11 @@ blokken die dieper liggen dan (jouw Y - 32) **én** dieper dan (terreinoppervlak
 gewoon de echte vallei onder je; het masker volgt het terrein in plaats van een vlak stuk stone te zijn.
 Ga je omlaag, dan worden de chunks om je heen automatisch opnieuw verstuurd met de echte blokken.
 
-**Anti-xray**: volledig ingesloten ertsen worden voor de client stone/deepslate. Ertsen die aan een grot/open ruimte
-grenzen zijn direct zichtbaar, ook verder weg in een grote cave. Dat is speelbaarder, maar Xray kan zulke al blootliggende
-ertsen in geladen chunks aanwijzen, ook als een muur het zicht blokkeert. Raw iron-, gold- en copperblokken blijven
-apart verborgen tot `reveal-radius` (standaard 12 blokken) en een vrije zichtlijn. De controle draait elke 2 ticks
-(0,1 seconde); buiten het bereik wordt de nepweergave opnieuw verstuurd.
+**Anti-xray**: ertsen, ook ertsen die aan grotten grenzen, blijven voor de client stone/deepslate tot de speler ze
+binnen `reveal-radius` (standaard 32 blokken) én met een vrije zichtlijn kan zien. Erts achter een muur wordt dus niet
+aan Xray prijsgegeven. Raw iron-, gold- en copperblokken blijven apart verborgen tot ze dichtbij en zichtbaar zijn.
+De plugin controleert elke 2 ticks en beperkt de zwaardere scan tot ongeveer eens per 10 ticks (0,5 seconde); buiten
+bereik of zichtlijn wordt de nepweergave opnieuw verstuurd.
 
 **Anti storage-ESP**: kisten, trapped chests, ender chests, barrels, hoppers, droppers, dispensers, crafters, ovens,
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
@@ -68,11 +68,11 @@ Let op: met `shieldguard.bypass` zie je gewoon alles. Test de bescherming dus me
 Alles staat in `config.yml`:
 - `freecam-protection.surface-margin`: hoger = ondiepe grotten blijven zichtbaar, lager = ook ondiepe bases verborgen.
 - `xray-protection.reveal-radius` / `storage-protection.reveal-radius`: hoe dichtbij je iets moet zijn om het te zien.
-- `xray-protection.hide-exposed-ores`: `false` toont cave-exposed ertsen op renderafstand; `true` verbergt ze tot dichtbij en in zicht.
+- `xray-protection.hide-exposed-ores`: laat dit op `true` staan om exposed ertsen alleen dichtbij en met zichtlijn te tonen.
 - `xray-protection.always-hidden-blocks`: blokken die ook bij `hide-exposed-ores: false` verborgen blijven, zoals raw metal blocks.
-- Na installatie/update: pas deze waarden ook aan in de bestaande `plugins/ShieldGuard/config.yml`; Bukkit vervangt een bestaande configuratie niet automatisch.
 - `storage-protection.hide-entities: false`: minecarts met kisten niet verbergen.
-- Herlaad met `/shieldguard reload`. Voor gewijzigde taakintervallen (`reveal-interval-ticks` en `freecam-protection.refresh-interval-ticks`) is een serverherstart nodig.
+- Na installatie/update: pas de bestaande `plugins/ShieldGuard/config.yml` aan; Bukkit vervangt die niet automatisch. Zet `hide-exposed-ores: true` en `reveal-radius: 32`.
+- Herlaad met `/shieldguard reload`. Voor gewijzigde taakintervallen (`reveal-interval-ticks`, `reveal-scan-cooldown-ticks` en `freecam-protection.refresh-interval-ticks`) is een serverherstart nodig.
 
 ## Technische basis
 

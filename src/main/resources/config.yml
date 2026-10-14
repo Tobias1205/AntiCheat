@@ -9,6 +9,8 @@ bypass-permission: shieldguard.bypass
 
 # Hoe vaak (in ticks) gekeken wordt welke verborgen blokken/minecarts je nu mag zien
 reveal-interval-ticks: 2
+# Throttle de zwaardere scan op grote afstanden om serverbelasting te beperken.
+reveal-scan-cooldown-ticks: 10
 
 freecam-protection:
   enabled: true
@@ -29,14 +31,12 @@ freecam-protection:
 
 xray-protection:
   enabled: true
-  # false = ertsen die aan een grot/open ruimte grenzen zijn op normale renderafstand zichtbaar.
-  # Dit is speelbaarder in grote grotten, maar Xray kan zulke al blootliggende ertsen in geladen
-  # chunks ook aanwijzen, zelfs als een muur het zicht blokkeert. Volledig ingesloten ertsen blijven verborgen.
-  hide-exposed-ores: false
-  # Erts binnen dit aantal blokken en in zicht wordt getoond. Groter bereik maakt zichtbare
-  # grotaders eerder zichtbaar; door muren heen blijft verborgen. 0 = nooit tonen (je ziet pas wat je
+  # Ook exposed ertsen blijven verborgen tot de speler dichtbij genoeg is en er een vrije zichtlijn is.
+  hide-exposed-ores: true
+  # Erts binnen dit aantal blokken en in zicht wordt getoond. 32 geeft een groot zichtbereik voor exposed
+  # ertsen in grotten; door muren heen blijft verborgen. 0 = nooit tonen (je ziet pas wat je
   # hebt gevonden zodra je het stuk hebt gemined; wel vervelend voor spelers).
-  reveal-radius: 12
+  reveal-radius: 32
   hidden-blocks:
     - coal_ore
     - deepslate_coal_ore
