@@ -19,13 +19,10 @@ import java.util.Arrays;
 /**
  * Past uitgaande packets per speler aan:
  *  1. alles diep onder het oppervlak EN diep onder de speler wordt deepslate/stone (anti-freecam)
- *  2. ALLE erts en storage-blokken worden stone/deepslate, tenzij de speler ze dichtbij en in zicht heeft
- *     (anti-xray, anti-storage-ESP). Het tonen gebeurt in {@link Revealer}.
+ *  2. Ingesloten erts, configured always-hidden blocks and storage are stone/deepslate unless Revealer
+ *     has allowed them; optionally, cave-exposed ores are sent normally for fair cave mining.
  */
 public final class ChunkPacketListener implements PacketListener {
-
-    /** Binnen zoveel blokken worden nieuw geplaatste/veranderde blokken meteen echt getoond. */
-    private static final int NEAR = 6;
 
     private final MaskManager masks;
 
@@ -109,18 +106,23 @@ public final class ChunkPacketListener implements PacketListener {
                     for (int ly = 0; ly < 16; ly++) {
                         int y = y0 + ly;
                         if (y < limit) {
+                            // Cave-exposed normal ores remain visible even if they fall below the
+                            // freecam depth mask. Special always-hidden blocks never take this path.
+                            byte belowClass = ids.classify(section.getBlockId(lx, ly, lz));
+                            if (belowClass == Ids.ORE && !hideExposed
+                                    && exposed(sections, i, lx, ly, lz, ids)) continue;
                             section.set(version, lx, ly, lz, ids.fillFor(y));
                             filled++;
                             continue;
                         }
                         if (!hide) continue;
                         byte cls = ids.classify(section.getBlockId(lx, ly, lz));
-                        if (cls != Ids.ORE && cls != Ids.STORAGE) continue;
+                        if (cls != Ids.ORE && cls != Ids.STORAGE && cls != Ids.ALWAYS_HIDDEN) continue;
                         if (cls == Ids.ORE && !hideExposed && exposed(sections, i, lx, ly, lz, ids)) continue;
                         if (st.revealed.containsKey(MaskManager.pos(baseX + lx, y, baseZ + lz))) continue;
                         section.set(version, lx, ly, lz, ids.fillFor(y));
                         if (cls == Ids.ORE) ores++;
-                        else storage++;
+                        else if (cls == Ids.STORAGE) storage++;
                     }
                 }
             }
@@ -173,7 +175,7 @@ public final class ChunkPacketListener implements PacketListener {
         WrapperPlayServerBlockChange w = new WrapperPlayServerBlockChange(event);
         Ids ids = masks.ids(user.getClientVersion());
         byte cls = ids.classify(w.getBlockId());
-        if (cls != Ids.ORE && cls != Ids.STORAGE) return;
+        if (cls != Ids.ORE && cls != Ids.STORAGE && cls != Ids.ALWAYS_HIDDEN) return;
 
         Vector3i p = w.getBlockPosition();
         if (allow(st, p.getX(), p.getY(), p.getZ())) return;
@@ -194,7 +196,7 @@ public final class ChunkPacketListener implements PacketListener {
         boolean changed = false;
         for (WrapperPlayServerMultiBlockChange.EncodedBlock b : blocks) {
             byte cls = ids.classify(b.getBlockId());
-            if (cls != Ids.ORE && cls != Ids.STORAGE) continue;
+            if (cls != Ids.ORE && cls != Ids.STORAGE && cls != Ids.ALWAYS_HIDDEN) continue;
             if (allow(st, b.getX(), b.getY(), b.getZ())) continue;
             b.setBlockId(ids.fillFor(b.getY()));
             changed = true;
@@ -205,28 +207,23 @@ public final class ChunkPacketListener implements PacketListener {
         }
     }
 
-    /** Mag dit blok echt getoond worden (al onthuld of vlak bij de speler)? Zo ja, dan wordt het onthuld. */
+    /** Alleen posities die door Revealer op basis van bereik en zichtlijn zijn onthuld blijven echt. */
     private static boolean allow(MaskManager.State st, int x, int y, int z) {
-        long key = MaskManager.pos(x, y, z);
-        if (st.revealed.containsKey(key)) return true;
-        if (Math.abs(x - st.x) <= NEAR && Math.abs(y - st.y) <= NEAR && Math.abs(z - st.z) <= NEAR) {
-            st.revealed.put(key, Boolean.TRUE);
-            return true;
-        }
-        return false;
+        return st.revealed.containsKey(MaskManager.pos(x, y, z));
     }
 
     // ------------------------------------------------------------- hulpjes
 
-    /** (Alleen als hide-exposed-ores uit staat) erts blijft zichtbaar als een buur lucht/water/lava is. */
+    /** (Alleen als hide-exposed-ores uit staat) erts blijft zichtbaar als een buur open is. */
     private static boolean exposed(BaseChunk[] sections, int index, int x, int y, int z, Ids ids) {
-        if (x == 0 || x == 15 || z == 0 || z == 15) return true;
+        // Horizontal neighbors across chunk borders are not available in this packet. Ignore only
+        // those directions; still accept an open neighbor on the other faces in this chunk.
         return open(sections, index, x, y + 1, z, ids)
                 || open(sections, index, x, y - 1, z, ids)
-                || open(sections, index, x + 1, y, z, ids)
-                || open(sections, index, x - 1, y, z, ids)
-                || open(sections, index, x, y, z + 1, ids)
-                || open(sections, index, x, y, z - 1, ids);
+                || (x < 15 && open(sections, index, x + 1, y, z, ids))
+                || (x > 0 && open(sections, index, x - 1, y, z, ids))
+                || (z < 15 && open(sections, index, x, y, z + 1, ids))
+                || (z > 0 && open(sections, index, x, y, z - 1, ids));
     }
 
     private static boolean open(BaseChunk[] sections, int index, int x, int y, int z, Ids ids) {

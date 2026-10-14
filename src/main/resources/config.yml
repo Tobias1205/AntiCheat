@@ -29,9 +29,10 @@ freecam-protection:
 
 xray-protection:
   enabled: true
-  # true  = ALLE erts is verborgen (ook in grotten) tot je er dichtbij bent en het kunt zien
-  # false = erts dat aan lucht/water/lava grenst blijft gewoon zichtbaar
-  hide-exposed-ores: true
+  # false = ertsen die aan een grot/open ruimte grenzen zijn op normale renderafstand zichtbaar.
+  # Dit is speelbaarder in grote grotten, maar Xray kan zulke al blootliggende ertsen in geladen
+  # chunks ook aanwijzen, zelfs als een muur het zicht blokkeert. Volledig ingesloten ertsen blijven verborgen.
+  hide-exposed-ores: false
   # Erts binnen dit aantal blokken en in zicht wordt getoond. Groter bereik maakt zichtbare
   # grotaders eerder zichtbaar; door muren heen blijft verborgen. 0 = nooit tonen (je ziet pas wat je
   # hebt gevonden zodra je het stuk hebt gemined; wel vervelend voor spelers).
@@ -56,6 +57,11 @@ xray-protection:
     - deepslate_emerald_ore
     - nether_quartz_ore
     - ancient_debris
+  # Deze blokken blijven ook verborgen als ze aan lucht grenzen; ze worden alleen dichtbij en met zichtlijn getoond.
+  always-hidden-blocks:
+    - raw_iron_block
+    - raw_gold_block
+    - raw_copper_block
 
 # Tegen storage-ESP: kisten, spawners, hoppers e.d. zijn voor de client stone/deepslate
 # tot je er dichtbij bent en er een vrije zichtlijn is (dus niet door muren heen).

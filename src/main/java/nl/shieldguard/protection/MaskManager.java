@@ -80,6 +80,7 @@ public final class MaskManager implements Listener {
     private volatile int oreRadius;
     private volatile int storageRadius;
     private volatile Set<String> oreNames = Set.of();
+    private volatile Set<String> alwaysHiddenNames = Set.of();
     private volatile Set<String> storageNames = Set.of();
     private volatile Set<Material> oreMaterials = Set.of();
     private volatile Set<Material> storageMaterials = Set.of();
@@ -104,7 +105,7 @@ public final class MaskManager implements Listener {
         interval = Math.max(1, cfg.getInt("freecam-protection.refresh-interval-ticks", 2));
 
         xrayEnabled = cfg.getBoolean("xray-protection.enabled", true);
-        hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", true);
+        hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", false);
         oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 6));
 
         storageEnabled = cfg.getBoolean("storage-protection.enabled", true);
@@ -112,10 +113,13 @@ public final class MaskManager implements Listener {
         storageRadius = Math.max(0, cfg.getInt("storage-protection.reveal-radius", 10));
 
         List<String> ores = xrayEnabled ? cfg.getStringList("xray-protection.hidden-blocks") : List.of();
+        List<String> alwaysHidden = xrayEnabled ? cfg.getStringList("xray-protection.always-hidden-blocks") : List.of();
         List<String> storage = storageEnabled ? cfg.getStringList("storage-protection.hidden-blocks") : List.of();
         oreNames = names(ores);
+        alwaysHiddenNames = names(alwaysHidden);
         storageNames = names(storage);
-        oreMaterials = materials(ores);
+        oreMaterials = new HashSet<>(materials(ores));
+        oreMaterials.addAll(materials(alwaysHidden));
         storageMaterials = materials(storage);
 
         bypassPermission = cfg.getString("bypass-permission", "shieldguard.bypass");
@@ -185,7 +189,7 @@ public final class MaskManager implements Listener {
     }
 
     public Ids ids(ClientVersion version) {
-        return idCache.computeIfAbsent(version, v -> new Ids(v, oreNames, storageNames));
+        return idCache.computeIfAbsent(version, v -> new Ids(v, oreNames, storageNames, alwaysHiddenNames));
     }
 
     public boolean hideExposedOres() {
