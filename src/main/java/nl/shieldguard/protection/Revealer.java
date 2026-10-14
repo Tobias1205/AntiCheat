@@ -172,22 +172,21 @@ public final class Revealer implements Listener {
         int by = eye.getBlockY();
         int bz = eye.getBlockZ();
 
-        // Erts: kubus rond de speler
+        // Alleen geregistreerde ertsposities uit chunk-data doorzoeken; dit blijft werkbaar bij een groot bereik.
         int r = masks.oreRadius();
         Set<Material> ores = masks.oreMaterials();
         if (r > 0 && !ores.isEmpty()) {
-            int r2 = r * r;
-            int minY = Math.max(w.getMinHeight(), by - r);
-            int maxY = Math.min(w.getMaxHeight() - 1, by + r);
-            for (int x = bx - r; x <= bx + r; x++) {
-                for (int z = bz - r; z <= bz + r; z++) {
-                    if (!w.isChunkLoaded(x >> 4, z >> 4)) continue;
-                    for (int y = minY; y <= maxY; y++) {
-                        int dx = x - bx, dy = y - by, dz = z - bz;
-                        if (dx * dx + dy * dy + dz * dz > r2) continue;
+            long r2 = (long) r * r;
+            int chunkRadius = (r + 15) >> 4;
+            for (int cx = (bx >> 4) - chunkRadius; cx <= (bx >> 4) + chunkRadius; cx++) {
+                for (int cz = (bz >> 4) - chunkRadius; cz <= (bz >> 4) + chunkRadius; cz++) {
+                    if (!w.isChunkLoaded(cx, cz)) continue;
+                    for (long key : masks.oreCandidates(w.getName(), cx, cz)) {
+                        int x = MaskManager.posX(key), y = MaskManager.posY(key), z = MaskManager.posZ(key);
+                        long dx = (long) x - bx, dy = (long) y - by, dz = (long) z - bz;
+                        if (dx * dx + dy * dy + dz * dz > r2 || y < w.getMinHeight() || y >= w.getMaxHeight()) continue;
                         Block b = w.getBlockAt(x, y, z);
-                        if (!ores.contains(b.getType())) continue;
-                        tryReveal(p, st, w, eye, b);
+                        if (ores.contains(b.getType())) tryReveal(p, st, w, eye, b);
                     }
                 }
             }
@@ -217,6 +216,9 @@ public final class Revealer implements Listener {
     private void tryReveal(Player p, MaskManager.State st, World w, Location eye, Block b) {
         long key = MaskManager.pos(b.getX(), b.getY(), b.getZ());
         if (st.revealed.containsKey(key)) return;
+        int cutoff = masks.cutoff(st);
+        if (cutoff != MaskManager.NO_MASK && b.getY() < cutoff
+                && b.getY() < w.getHighestBlockYAt(b.getX(), b.getZ()) - masks.surfaceMargin()) return;
         if (!hasOpenNeighbor(b)) return;      // goedkope voorfilter: ingesloten = nooit zichtbaar
         if (!visible(w, eye, b)) return;
         st.revealed.put(key, Boolean.TRUE);   // eerst markeren, anders maskeert de packet-listener het weer
@@ -286,7 +288,10 @@ public final class Revealer implements Listener {
                 continue;
             }
             int range = isOre ? oreRadius : storageRadius;
-            if (range > 0 && dx * dx + dy * dy + dz * dz <= (long) range * range
+            int cutoff = masks.cutoff(st);
+            boolean depthMasked = cutoff != MaskManager.NO_MASK && y < cutoff
+                    && y < w.getHighestBlockYAt(x, z) - masks.surfaceMargin();
+            if (!depthMasked && range > 0 && dx * dx + dy * dy + dz * dz <= (long) range * range
                     && hasOpenNeighbor(block) && visible(w, eye, block)) continue;
 
             it.remove();

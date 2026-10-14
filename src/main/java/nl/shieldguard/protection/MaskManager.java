@@ -14,6 +14,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayDeque;
@@ -62,6 +64,8 @@ public final class MaskManager implements Listener {
     private final ShieldGuard plugin;
     private final Map<UUID, State> states = new ConcurrentHashMap<>();
     private final Map<ClientVersion, Ids> idCache = new ConcurrentHashMap<>();
+    private final Map<String, Map<Long, Set<Long>>> oreCandidates = new ConcurrentHashMap<>();
+    private static final int MAX_CACHED_ORE_CHUNKS = 8192;
 
     private BukkitTask task;
 
@@ -107,7 +111,7 @@ public final class MaskManager implements Listener {
 
         xrayEnabled = cfg.getBoolean("xray-protection.enabled", true);
         hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", true);
-        oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 48));
+        oreRadius = Math.max(0, cfg.getInt("xray-protection.reveal-radius", 160));
 
         storageEnabled = cfg.getBoolean("storage-protection.enabled", true);
         hideEntities = storageEnabled && cfg.getBoolean("storage-protection.hide-entities", true);
@@ -157,6 +161,7 @@ public final class MaskManager implements Listener {
     public void stop() {
         if (task != null) task.cancel();
         states.clear();
+        oreCandidates.clear();
     }
 
     public static String normalize(String name) {
@@ -191,6 +196,52 @@ public final class MaskManager implements Listener {
 
     public Ids ids(ClientVersion version) {
         return idCache.computeIfAbsent(version, v -> new Ids(v, oreNames, storageNames, alwaysHiddenNames));
+    }
+
+    /** Cache ore coordinates from the unmodified chunk packet; used to search far without scanning every block. */
+    public void cacheOreCandidates(String world, int chunkX, int chunkZ, Set<Long> positions) {
+        Map<Long, Set<Long>> byChunk = oreCandidates.computeIfAbsent(world, ignored -> new ConcurrentHashMap<>());
+        long chunkKey = key(chunkX, chunkZ);
+        Set<Long> copy = ConcurrentHashMap.newKeySet();
+        copy.addAll(positions);
+        byChunk.put(chunkKey, copy);
+        trimCandidateCache(byChunk);
+    }
+
+    public Set<Long> oreCandidates(String world, int chunkX, int chunkZ) {
+        Map<Long, Set<Long>> byChunk = oreCandidates.get(world);
+        if (byChunk == null) return Set.of();
+        return byChunk.getOrDefault(key(chunkX, chunkZ), Set.of());
+    }
+
+    private static void trimCandidateCache(Map<Long, Set<Long>> byChunk) {
+        while (byChunk.size() > MAX_CACHED_ORE_CHUNKS) {
+            var iterator = byChunk.keySet().iterator();
+            if (!iterator.hasNext()) return;
+            byChunk.remove(iterator.next());
+        }
+    }
+
+    private void updateOreCandidate(Location loc, Material material, boolean add) {
+        if (!oreMaterials.contains(material) || loc.getWorld() == null) return;
+        Map<Long, Set<Long>> byChunk = oreCandidates.computeIfAbsent(
+                loc.getWorld().getName(), ignored -> new ConcurrentHashMap<>());
+        long chunkKey = key(loc.getBlockX() >> 4, loc.getBlockZ() >> 4);
+        Set<Long> positions = byChunk.computeIfAbsent(chunkKey, ignored -> ConcurrentHashMap.newKeySet());
+        long blockKey = pos(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+        if (add) positions.add(blockKey);
+        else positions.remove(blockKey);
+        trimCandidateCache(byChunk);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onOrePlace(BlockPlaceEvent event) {
+        updateOreCandidate(event.getBlockPlaced().getLocation(), event.getBlockPlaced().getType(), true);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onOreBreak(BlockBreakEvent event) {
+        updateOreCandidate(event.getBlock().getLocation(), event.getBlock().getType(), false);
     }
 
     public boolean hideExposedOres() {

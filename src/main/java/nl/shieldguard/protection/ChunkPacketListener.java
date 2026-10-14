@@ -15,6 +15,8 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMu
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUnloadChunk;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Past uitgaande packets per speler aan:
@@ -88,6 +90,7 @@ public final class ChunkPacketListener implements PacketListener {
         // Oppervlakte per kolom bepalen vóórdat we iets aanpassen.
         int[] surface = cutoff != MaskManager.NO_MASK ? surface(sections, minY, ids) : null;
         long filled = 0, ores = 0, storage = 0;
+        Set<Long> orePositions = new HashSet<>();
 
         for (int i = 0; i < sections.length; i++) {
             BaseChunk section = sections[i];
@@ -105,13 +108,17 @@ public final class ChunkPacketListener implements PacketListener {
                     }
                     for (int ly = 0; ly < 16; ly++) {
                         int y = y0 + ly;
+                        int blockId = section.getBlockId(lx, ly, lz);
+                        byte cls = hide ? ids.classify(blockId) : Ids.SOLID;
+                        if (cls == Ids.ORE || cls == Ids.ALWAYS_HIDDEN) {
+                            orePositions.add(MaskManager.pos(baseX + lx, y, baseZ + lz));
+                        }
                         if (y < limit) {
                             section.set(version, lx, ly, lz, ids.fillFor(y));
                             filled++;
                             continue;
                         }
                         if (!hide) continue;
-                        byte cls = ids.classify(section.getBlockId(lx, ly, lz));
                         if (cls != Ids.ORE && cls != Ids.STORAGE && cls != Ids.ALWAYS_HIDDEN) continue;
                         if (cls == Ids.ORE && !hideExposed && exposed(sections, i, lx, ly, lz, ids)) continue;
                         if (st.revealed.containsKey(MaskManager.pos(baseX + lx, y, baseZ + lz))) continue;
@@ -127,6 +134,7 @@ public final class ChunkPacketListener implements PacketListener {
         masks.blocksFilled.addAndGet(filled);
         masks.oresHidden.addAndGet(ores);
         masks.storageHidden.addAndGet(storage);
+        masks.cacheOreCandidates(st.world, column.getX(), column.getZ(), orePositions);
         st.sent.put(chunkKey, cutoff);
         event.markForReEncode(true);
     }

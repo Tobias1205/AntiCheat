@@ -33,10 +33,10 @@ xray-protection:
   enabled: true
   # Ook exposed ertsen blijven verborgen tot de speler dichtbij genoeg is en er een vrije zichtlijn is.
   hide-exposed-ores: true
-  # Erts binnen dit aantal blokken en in zicht wordt getoond. 48 geeft een groot zichtbereik voor exposed
+  # Erts binnen dit aantal blokken en in zicht wordt getoond. 160 geeft een groot zichtbereik voor exposed
   # ertsen in grotten; door muren heen blijft verborgen. 0 = nooit tonen (je ziet pas wat je
   # hebt gevonden zodra je het stuk hebt gemined; wel vervelend voor spelers).
-  reveal-radius: 48
+  reveal-radius: 160
   hidden-blocks:
     - coal_ore
     - deepslate_coal_ore

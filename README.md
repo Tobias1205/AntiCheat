@@ -17,10 +17,11 @@ gewoon de echte vallei onder je; het masker volgt het terrein in plaats van een 
 Ga je omlaag, dan worden de chunks om je heen automatisch opnieuw verstuurd met de echte blokken.
 
 **Anti-xray**: ertsen, ook ertsen die aan grotten grenzen, blijven voor de client stone/deepslate tot de speler ze
-binnen `reveal-radius` (standaard 48 blokken) én met een vrije zichtlijn kan zien. Erts achter een muur wordt dus niet
+binnen `reveal-radius` (standaard 160 blokken) én met een vrije zichtlijn kan zien. Erts achter een muur wordt dus niet
 aan Xray prijsgegeven. Raw iron-, gold- en copperblokken blijven apart verborgen tot ze dichtbij en zichtbaar zijn.
-De plugin controleert elke 2 ticks en beperkt de zwaardere scan tot ongeveer eens per 10 ticks (0,5 seconde); buiten
-bereik of zichtlijn wordt de nepweergave opnieuw verstuurd.
+De plugin houdt ertsposities uit verstuurde chunks bij in plaats van alle blokken binnen die grote straal af te lopen.
+Elke 10 ticks (0,5 seconde) controleert hij afstand, open blootstelling en zichtlijn; buiten bereik of zichtlijn wordt
+de nepweergave opnieuw verstuurd. De effectieve afstand kan lager zijn als de server- of client-renderafstand lager is.
 
 **Anti storage-ESP**: kisten, trapped chests, ender chests, barrels, hoppers, droppers, dispensers, crafters, ovens,
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
@@ -71,7 +72,7 @@ Alles staat in `config.yml`:
 - `xray-protection.hide-exposed-ores`: laat dit op `true` staan om exposed ertsen alleen dichtbij en met zichtlijn te tonen.
 - `xray-protection.always-hidden-blocks`: blokken die ook bij `hide-exposed-ores: false` verborgen blijven, zoals raw metal blocks.
 - `storage-protection.hide-entities: false`: minecarts met kisten niet verbergen.
-- Na installatie/update: pas de bestaande `plugins/ShieldGuard/config.yml` aan; Bukkit vervangt die niet automatisch. Zet `hide-exposed-ores: true` en `reveal-radius: 48`.
+- Na installatie/update: pas de bestaande `plugins/ShieldGuard/config.yml` aan; Bukkit vervangt die niet automatisch. Zet `hide-exposed-ores: true` en `reveal-radius: 160`.
 - Herlaad met `/shieldguard reload`. Voor gewijzigde taakintervallen (`reveal-interval-ticks`, `reveal-scan-cooldown-ticks` en `freecam-protection.refresh-interval-ticks`) is een serverherstart nodig.
 
 ## Technische basis
