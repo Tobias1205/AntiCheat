@@ -1,6 +1,5 @@
 package nl.shieldguard;
 
-import nl.shieldguard.movement.MovementGuard;
 import nl.shieldguard.protection.MaskManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -18,12 +17,9 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private final ShieldGuard plugin;
     private final MaskManager masks;
-    private final MovementGuard movement;
-
-    public AdminCommand(ShieldGuard plugin, MaskManager masks, MovementGuard movement) {
+    public AdminCommand(ShieldGuard plugin, MaskManager masks) {
         this.plugin = plugin;
         this.masks = masks;
-        this.movement = movement;
     }
 
     @Override
@@ -44,10 +40,8 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(Component.text("Gebruik: /shieldguard vl <speler> (speler moet online zijn)", NamedTextColor.RED));
                 return true;
             }
-            sender.sendMessage(Component.text("Strafpunten van " + target.getName(), NamedTextColor.GOLD));
-            for (String line : movement.describe(target.getUniqueId())) {
-                sender.sendMessage(Component.text(line, NamedTextColor.GRAY));
-            }
+            sender.sendMessage(Component.text("Bewegingschecks lopen via GrimAC. Bekijk GrimAC-alerts en /grim history voor "
+                    + target.getName() + ".", NamedTextColor.GRAY));
             return true;
         }
         if (!(sender instanceof Player player)) {

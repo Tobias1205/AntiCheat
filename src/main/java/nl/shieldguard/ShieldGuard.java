@@ -3,7 +3,6 @@ package nl.shieldguard;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
-import nl.shieldguard.movement.MovementGuard;
 import nl.shieldguard.movement.ActionGuard;
 import nl.shieldguard.movement.CombatGuard;
 import nl.shieldguard.protection.MaskManager;
@@ -26,7 +25,6 @@ public final class ShieldGuard extends JavaPlugin {
 
     private MaskManager maskManager;
     private Revealer revealer;
-    private MovementGuard movementGuard;
     private CombatGuard combatGuard;
     private ActionGuard actionGuard;
     private GrimIntegration grimIntegration;
@@ -46,8 +44,8 @@ public final class ShieldGuard extends JavaPlugin {
         getServer().getPluginManager().registerEvents(revealer, this);
         revealer.start();
 
-        movementGuard = new MovementGuard(this);
-        getServer().getPluginManager().registerEvents(movementGuard, this);
+        // GrimAC is the authoritative movement checker. Do not run ShieldGuard's older
+        // PlayerMoveEvent setbacks alongside it; they can correct legitimate jumps.
 
         combatGuard = new CombatGuard(this);
         getServer().getPluginManager().registerEvents(combatGuard, this);
@@ -67,7 +65,7 @@ public final class ShieldGuard extends JavaPlugin {
 
         PluginCommand admin = getCommand("shieldguard");
         if (admin != null) {
-            AdminCommand ac = new AdminCommand(this, maskManager, movementGuard);
+            AdminCommand ac = new AdminCommand(this, maskManager);
             admin.setExecutor(ac);
             admin.setTabCompleter(ac);
         }
@@ -111,7 +109,6 @@ public final class ShieldGuard extends JavaPlugin {
     public void reload() {
         reloadConfig();
         maskManager.reloadSettings();
-        movementGuard.reload();
         combatGuard.reload();
         actionGuard.reload();
         grimIntegration.reload();

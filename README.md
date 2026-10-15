@@ -27,14 +27,29 @@ de nepweergave opnieuw verstuurd. De effectieve afstand kan lager zijn als de se
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
 Minecarts met kisten/hoppers/spawners en chest-boats zijn per speler onzichtbaar tot ze dichtbij en in zicht zijn.
 
-**GrimAC-integratie**: GrimAC voert de diepere packet- en bewegingschecks uit; ShieldGuard ontvangt Grim-vlaggen via Grim's officiële API en stuurt ze als staffmeldingen door. GrimAC moet als aparte plugin in `plugins/` staan; de Grim-code wordt niet in ShieldGuard's jar gebundeld. Grim zelf bepaalt detecties en straffen via zijn configuratie; ShieldGuard annuleert Grim-vlaggen niet. Controleer Grim's configuratie en test eerst met staffmeldingen voordat je straffen aanscherpt. De lokale eenvoudige movement-checks staan standaard uit om dubbele setbacks te voorkomen; zet `movement.enabled: true` alleen als je beide systemen wilt laten controleren.
+**GrimAC-integratie**: GrimAC voert de packet- en bewegingschecks uit; ShieldGuard ontvangt Grim-vlaggen via Grim's officiële API en stuurt ze als staffmeldingen door. GrimAC moet als aparte plugin in `plugins/` staan; de Grim-code wordt niet in ShieldGuard's jar gebundeld. Grim bepaalt zelf detecties, setbacks en straffen. ShieldGuard's oudere `PlayerMoveEvent`-listener is verwijderd om dubbele correcties te voorkomen; een eventuele oude `movement:`-configuratie wordt genegeerd.
 
-**Eigen beweging-anticheat** (`movement:` in config): optionele, eenvoudigere checks voor fly (te hoog stijgen, zweven, onnatuurlijk langzaam vallen),
-speed (gemiddelde snelheid over 1 seconde) en jesus (over water lopen). De server kijkt zelf naar de blokken onder de speler
-en vertrouwt de onGround-vlag van de client niet. Uitzonderingen: creative/spectator, elytra, riptide, voertuigen, water, lava,
-ladders, ijs, slijm, honing, spinnenwebben, potions (levitation/slow falling/jump boost), knockback/explosies en teleports.
-Overtredingen geven strafpunten (VL) die vanzelf zakken. Een speler wordt alleen teruggezet als die op stabiele grond staat en het veilige checkpoint maximaal `setback-max-distance` blokken weg is. Tijdens een sprong of val wordt geen setback uitgevoerd. De hovercheck meet verstreken tijd (`hover-duration-ms`) in plaats van losse packet/move-events, zodat snel van een rand afrennen niet als zweven wordt geteld. Vanaf `kick-vl` kan nog wel een kick volgen; stel die drempel voorzichtig af.
-Staff met `shieldguard.alerts` krijgt meldingen; `/shieldguard vl <speler>` toont de VL per check.
+Voor automatisch bannen na veel herhaalde Grim-vlaggen kun je in `plugins/GrimAC/punishments.yml` onder `Punishments:` een aparte categorie toevoegen. Begin met een hoge grens en controleer eerst een periode de staffmeldingen; Grim telt actieve vlaggen op en laat ze na vijf minuten vervallen:
+
+```yaml
+  RepeatedMovementCheats:
+    remove-violations-after: 300
+    checks:
+      - "Simulation"
+      - "GroundSpoof"
+      - "Timer"
+      - "!NegativeTimer"
+      - "TimerLimit"
+      - "NoFall"
+      - "Phase"
+    commands:
+      - "5:5 [alert]"
+      - "50:0 ban %player% Herhaaldelijke cheatdetecties (GrimAC)"
+```
+
+Voeg dit toe onder de bestaande `Punishments:`-sectie, niet als tweede `Punishments:`-sleutel. De banregel is permanent en wordt pas na 50 actieve vlaggen uitgevoerd; verhoog de drempel als je valse meldingen ziet. Grim's documentatie beschrijft de thresholds en commando's. [GrimAC-punishments](https://github.com/GrimAnticheat/Grim/wiki/Punishments)
+
+Staff met `shieldguard.alerts` krijgt Grim-meldingen; `/shieldguard vl <speler>` verwijst naar GrimAC's eigen geschiedenis.
 
 **Combat-waarschuwingen** (`combat:` in config): meldt uitzonderlijk lange melee-hit-afstanden en aanhoudend extreem hoge arm-swing-aantallen. Deze signalen zijn heuristieken: ze melden alleen aan staff en stoppen of bestraffen niemand automatisch. `shieldguard.combat.bypass` sluit staff uit.
 
@@ -61,9 +76,8 @@ Fouten in de packet-code staan nu ook in de serverconsole.
 | `shieldguard.reports.manage` | op | reports beheren |
 | `shieldguard.reports.notify` | op | meldingen ontvangen |
 | `shieldguard.bypass` | op | niet gemaskeerd worden |
-| `shieldguard.admin` | op | `/shieldguard status`, `reload` en `vl` |
+| `shieldguard.admin` | op | `/shieldguard status`, `reload` en de GrimAC-verwijzing `vl` |
 | `shieldguard.alerts` | op | meldingen van movement-hacks ontvangen |
-| `shieldguard.movement.bypass` | op | niet gecontroleerd worden op fly/speed |
 | `shieldguard.combat.bypass` | op | geen combatheuristiek-meldingen ontvangen |
 | `shieldguard.action.bypass` | op | geen bouwactie-heuristiek-meldingen ontvangen |
 
