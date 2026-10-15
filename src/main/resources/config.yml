@@ -23,10 +23,9 @@ freecam-protection:
   surface-margin: 12
   # Hoe ver (in chunks) om de speler heen we chunks opnieuw sturen als de grens verschuift
   refresh-radius-chunks: 8
-  # Rustiger verversen voorkomt zichtbare client-gaten bij het opnieuw sturen van chunks.
-  refresh-interval-ticks: 5
-  # Beperk refresh-pieken; chunks worden geleidelijk opnieuw verstuurd.
-  chunks-per-run: 2
+  # Eén chunk per tick: snelle updates zonder grote refresh-pieken.
+  refresh-interval-ticks: 1
+  chunks-per-run: 1
   # Pas opnieuw maskeren zodra de speler voldoende hoger is gekomen
   remask-gap-blocks: 8
 

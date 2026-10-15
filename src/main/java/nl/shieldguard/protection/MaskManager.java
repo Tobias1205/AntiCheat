@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
+import java.util.Comparator;
 
 /**
  * Houdt per speler bij waar hij is en welke "diepte-grens" hij nodig heeft,
@@ -58,7 +59,9 @@ public final class MaskManager implements Listener {
         public long lastRevealScanNanos;
         final ArrayDeque<Long> queue = new ArrayDeque<>();
         final Set<Long> queued = new HashSet<>();
-        long lastScanSignature = Long.MIN_VALUE;
+        int lastScanCutoff = Integer.MIN_VALUE;
+        int lastScanChunkX = Integer.MIN_VALUE;
+        int lastScanChunkZ = Integer.MIN_VALUE;
     }
 
     private final ShieldGuard plugin;
@@ -105,9 +108,9 @@ public final class MaskManager implements Listener {
         depth = Math.max(16, cfg.getInt("freecam-protection.depth-below-player", 32));
         surfaceMargin = Math.max(0, cfg.getInt("freecam-protection.surface-margin", 12));
         radius = Math.max(1, cfg.getInt("freecam-protection.refresh-radius-chunks", 8));
-        perRun = Math.max(1, cfg.getInt("freecam-protection.chunks-per-run", 8));
+        perRun = Math.max(1, cfg.getInt("freecam-protection.chunks-per-run", 1));
         remaskGap = Math.max(8, cfg.getInt("freecam-protection.remask-gap-blocks", 8));
-        interval = Math.max(1, cfg.getInt("freecam-protection.refresh-interval-ticks", 2));
+        interval = Math.max(1, cfg.getInt("freecam-protection.refresh-interval-ticks", 1));
 
         xrayEnabled = cfg.getBoolean("xray-protection.enabled", true);
         hideExposedOres = cfg.getBoolean("xray-protection.hide-exposed-ores", true);
@@ -372,7 +375,9 @@ public final class MaskManager implements Listener {
             st.revealed.clear();
             st.queue.clear();
             st.queued.clear();
-            st.lastScanSignature = Long.MIN_VALUE;
+            st.lastScanCutoff = Integer.MIN_VALUE;
+            st.lastScanChunkX = Integer.MIN_VALUE;
+            st.lastScanChunkZ = Integer.MIN_VALUE;
             st.lastBlock = Long.MIN_VALUE;
         }
     }
@@ -420,9 +425,13 @@ public final class MaskManager implements Listener {
             int pcx = loc.getBlockX() >> 4;
             int pcz = loc.getBlockZ() >> 4;
 
-            long signature = ((long) needed << 40) ^ ((long) pcx << 20) ^ (pcz & 0xFFFFFL);
-            if (st.queue.isEmpty() && signature != st.lastScanSignature) {
-                st.lastScanSignature = signature;
+            if (needed != st.lastScanCutoff || pcx != st.lastScanChunkX || pcz != st.lastScanChunkZ) {
+                // Nieuwe situatie: laat oude, inmiddels verre chunks niet de actuele refresh ophouden.
+                st.queue.clear();
+                st.queued.clear();
+                st.lastScanCutoff = needed;
+                st.lastScanChunkX = pcx;
+                st.lastScanChunkZ = pcz;
                 scan(st, needed, pcx, pcz);
             }
 
@@ -450,10 +459,15 @@ public final class MaskManager implements Listener {
                 if (sent == null) continue;
                 boolean unmaskNeeded = sent > needed;
                 boolean remaskNeeded = needed != NO_MASK && ((long) needed - (long) sent) >= remaskGap;
-                if ((unmaskNeeded || remaskNeeded) && st.queued.add(key)) {
-                    st.queue.add(key);
-                }
+                if (unmaskNeeded || remaskNeeded) st.queued.add(key);
             }
         }
+        List<Long> nearestFirst = new ArrayList<>(st.queued);
+        nearestFirst.sort(Comparator.comparingLong(k -> {
+            long dx = (long) ((int) (k >> 32)) - pcx;
+            long dz = (long) ((int) (long) k) - pcz;
+            return dx * dx + dz * dz;
+        }));
+        st.queue.addAll(nearestFirst);
     }
 }
