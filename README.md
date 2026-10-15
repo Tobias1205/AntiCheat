@@ -4,9 +4,9 @@ Anti-freecam, anti-xray, storage-ESP bescherming en een reportsysteem voor Paper
 
 ## Installeren
 
-1. Zet de **PacketEvents**-plugin (Spigot/Paper-versie 2.14.0 of nieuwer) in `plugins/`.
+1. Zet [PacketEvents](https://github.com/retrooper/packetevents/releases) (Spigot/Paper-versie 2.14.0 of nieuwer) én [GrimAC](https://modrinth.com/plugin/grimac) in `plugins/`. Gebruik de GrimAC-build die Paper 26.2 ondersteunt; ShieldGuard vereist GrimAC bij het starten.
 2. Bouw ShieldGuard: `mvn package` met Java 25. De JAR staat daarna in `target/ShieldGuard-1.0.0.jar`.
-3. Zet de jar in `plugins/`, start de server en pas `plugins/ShieldGuard/config.yml` aan
+3. Zet de ShieldGuard-jar ook in `plugins/`, start de server en pas `plugins/ShieldGuard/config.yml` aan
    (vooral `worlds:` — alleen overworld-achtige werelden!).
 
 ## Wat doet het
@@ -27,7 +27,9 @@ de nepweergave opnieuw verstuurd. De effectieve afstand kan lager zijn als de se
 brewing stands, spawners en shulker boxes worden net zo behandeld (standaard zichtbaar binnen 10 blokken en in zicht).
 Minecarts met kisten/hoppers/spawners en chest-boats zijn per speler onzichtbaar tot ze dichtbij en in zicht zijn.
 
-**Beweging-anticheat** (`movement:` in config): detecteert fly (te hoog stijgen, zweven, onnatuurlijk langzaam vallen),
+**GrimAC-integratie**: GrimAC voert de diepere packet- en bewegingschecks uit; ShieldGuard ontvangt Grim-vlaggen via Grim's officiële API en stuurt ze als staffmeldingen door. GrimAC moet als aparte plugin in `plugins/` staan; de Grim-code wordt niet in ShieldGuard's jar gebundeld. Grim zelf bepaalt detecties en straffen via zijn configuratie; ShieldGuard annuleert Grim-vlaggen niet. Controleer Grim's configuratie en test eerst met staffmeldingen voordat je straffen aanscherpt. De lokale eenvoudige movement-checks staan standaard uit om dubbele setbacks te voorkomen; zet `movement.enabled: true` alleen als je beide systemen wilt laten controleren.
+
+**Eigen beweging-anticheat** (`movement:` in config): optionele, eenvoudigere checks voor fly (te hoog stijgen, zweven, onnatuurlijk langzaam vallen),
 speed (gemiddelde snelheid over 1 seconde) en jesus (over water lopen). De server kijkt zelf naar de blokken onder de speler
 en vertrouwt de onGround-vlag van de client niet. Uitzonderingen: creative/spectator, elytra, riptide, voertuigen, water, lava,
 ladders, ijs, slijm, honing, spinnenwebben, potions (levitation/slow falling/jump boost), knockback/explosies en teleports.
@@ -80,15 +82,14 @@ Alles staat in `config.yml`:
 
 ## Technische basis
 
-`pom.xml` is ingesteld op Paper API `26.2.build.129-stable`, PacketEvents 2.14.0 en Java 25. De aangeleverde basiscode was oorspronkelijk geschreven voor Paper 1.21.x. Deze aangepaste broncode is hier niet met Paper 26.2 gecompileerd of op een server getest; voer na upload naar GitHub een Maven-build uit en controleer de serverconsole bij de eerste start.
+`pom.xml` is ingesteld op Paper API `26.2.build.129-stable`, PacketEvents 2.14.0, GrimAPI 1.6.0.12 en Java 25. GrimAC is een aparte vereiste plugin en wordt niet in de ShieldGuard-jar samengevoegd. Deze aangepaste broncode is hier niet met Paper 26.2 gecompileerd of op een server getest; voer na upload naar GitHub een Maven-build uit en controleer de serverconsole bij de eerste start.
 
 ## Bekende beperkingen
 
 - De movement-checks zijn bewust voorzichtig en vangen niet alles: geen volledige KillAura-, aim-, NoFall-,
   phase-, timer- of elytra-hack-detectie. Scaffold- en snel-plaatsenmeldingen zijn heuristieken, geen bewijs. Reach-, swing- en bouwsignalen zijn alleen aanvullend en vormen geen
   bewijs. Begin met een hoge `kick-vl`, bekijk staffmeldingen en stel `tolerance` en limieten voorzichtig bij.
-- Geen enkele plugin kan letterlijk elke cheat detecteren; hacks kunnen onder drempels blijven of legitiem gedrag nabootsen.
-  Voor bredere packet-simulation-checks kun je GrimAC naast ShieldGuard gebruiken, eerst met meldingen en handmatige controle.
+- Geen enkele plugin kan letterlijk elke cheat detecteren; hacks kunnen onder drempels blijven of legitiem gedrag nabootsen. GrimAC's meldingen moeten eerst op jouw server worden gecontroleerd voordat je straffen aanscherpt.
 - Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
 - Kleine reveal/remask-vertraging (standaard max ~0,1 s) bij het naderen of verlaten van erts/kisten, door `reveal-interval-ticks`.

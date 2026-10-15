@@ -2,8 +2,8 @@ name: ShieldGuard
 version: '${project.version}'
 main: nl.shieldguard.ShieldGuard
 api-version: '26.2'
-description: Anti-freecam, anti-xray, movement, combat and action alerts, and reports
-depend: [packetevents]
+description: Anti-freecam, anti-xray, GrimAC integration, reports and heuristic alerts
+depend: [packetevents, GrimAC]
 
 commands:
   shieldguard:

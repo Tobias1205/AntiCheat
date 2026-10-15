@@ -105,7 +105,8 @@ storage-protection:
 
 # Beweging-anticheat: fly, speed en jesus (water lopen)
 movement:
-  enabled: true
+  # GrimAC doet de diepere packet/movement-simulatie; voorkom dubbele, simpele setbacks.
+  enabled: false
   # Leeg = alle werelden
   worlds: []
   # Strafpunten (VL) lopen vanzelf terug: -1 per zoveel seconden
@@ -164,6 +165,10 @@ actions:
     enabled: true
     # Hoge drempel om normaal snel bouwen niet direct te melden.
     minimum-per-second: 18
+
+# ShieldGuard luistert naar GrimAC-vlaggen en stuurt ze door naar staff met shieldguard.alerts.
+grim-integration:
+  alert-cooldown-seconds: 5
 
 reports:
   cooldown-seconds: 60

@@ -9,6 +9,7 @@ import nl.shieldguard.movement.CombatGuard;
 import nl.shieldguard.protection.MaskManager;
 import nl.shieldguard.protection.ChunkPacketListener;
 import nl.shieldguard.protection.Revealer;
+import nl.shieldguard.integration.GrimIntegration;
 import nl.shieldguard.reports.ReportManager;
 import nl.shieldguard.reports.ReportsCommand;
 import nl.shieldguard.reports.ReportCommand;
@@ -28,6 +29,7 @@ public final class ShieldGuard extends JavaPlugin {
     private MovementGuard movementGuard;
     private CombatGuard combatGuard;
     private ActionGuard actionGuard;
+    private GrimIntegration grimIntegration;
     private ReportManager reportManager;
     private ReportsGui reportsGui;
     private PacketListenerCommon packetListener;
@@ -52,6 +54,9 @@ public final class ShieldGuard extends JavaPlugin {
 
         actionGuard = new ActionGuard(this);
         getServer().getPluginManager().registerEvents(actionGuard, this);
+
+        grimIntegration = new GrimIntegration(this);
+        grimIntegration.register();
 
         packetListener = new ChunkPacketListener(maskManager).asAbstract(PacketListenerPriority.HIGH);
         PacketEvents.getAPI().getEventManager().registerListener(packetListener);
@@ -89,6 +94,9 @@ public final class ShieldGuard extends JavaPlugin {
         if (packetListener != null) {
             PacketEvents.getAPI().getEventManager().unregisterListener(packetListener);
         }
+        if (grimIntegration != null) {
+            grimIntegration.unregister();
+        }
         if (revealer != null) {
             revealer.stop();
         }
@@ -106,6 +114,7 @@ public final class ShieldGuard extends JavaPlugin {
         movementGuard.reload();
         combatGuard.reload();
         actionGuard.reload();
+        grimIntegration.reload();
     }
 
     /** Bericht uit config.yml als Component (MiniMessage), inclusief prefix. */
