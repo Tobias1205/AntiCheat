@@ -36,6 +36,8 @@ Staff met `shieldguard.alerts` krijgt meldingen; `/shieldguard vl <speler>` toon
 
 **Combat-waarschuwingen** (`combat:` in config): meldt uitzonderlijk lange melee-hit-afstanden en aanhoudend extreem hoge arm-swing-aantallen. Deze signalen zijn heuristieken: ze melden alleen aan staff en stoppen of bestraffen niemand automatisch. `shieldguard.combat.bypass` sluit staff uit.
 
+**Bouwactie-waarschuwingen** (`actions:` in config): signaleert herhaald blokken plaatsen rond/onder de voeten (scaffold-patroon) en extreem snel plaatsen. Dit zijn zwakke signalen die ook bij legitiem snel bouwen kunnen voorkomen; ze waarschuwen alleen staff en leiden nooit automatisch tot een setback, kick of ban. `shieldguard.action.bypass` sluit staff uit.
+
 **Reports**
 - `/report <speler> <reden>` — cooldown, geen dubbele reports, tab-completion op redenen
 - `/reports` — GUI met open reports (linksklik = teleporteren, rechtsklik = afsluiten)
@@ -61,6 +63,7 @@ Fouten in de packet-code staan nu ook in de serverconsole.
 | `shieldguard.alerts` | op | meldingen van movement-hacks ontvangen |
 | `shieldguard.movement.bypass` | op | niet gecontroleerd worden op fly/speed |
 | `shieldguard.combat.bypass` | op | geen combatheuristiek-meldingen ontvangen |
+| `shieldguard.action.bypass` | op | geen bouwactie-heuristiek-meldingen ontvangen |
 
 Let op: met `shieldguard.bypass` zie je gewoon alles. Test de bescherming dus met een account zonder die permission.
 
@@ -81,14 +84,14 @@ Alles staat in `config.yml`:
 
 ## Bekende beperkingen
 
-- De movement-checks zijn bewust voorzichtig en vangen niet alles: geen volledige KillAura-, aim-, scaffold-, NoFall-,
-  phase-, timer- of elytra-hack-detectie. De reach- en swingsignalen zijn alleen aanvullende heuristieken en vormen geen
+- De movement-checks zijn bewust voorzichtig en vangen niet alles: geen volledige KillAura-, aim-, NoFall-,
+  phase-, timer- of elytra-hack-detectie. Scaffold- en snel-plaatsenmeldingen zijn heuristieken, geen bewijs. Reach-, swing- en bouwsignalen zijn alleen aanvullend en vormen geen
   bewijs. Begin met een hoge `kick-vl`, bekijk staffmeldingen en stel `tolerance` en limieten voorzichtig bij.
 - Geen enkele plugin kan letterlijk elke cheat detecteren; hacks kunnen onder drempels blijven of legitiem gedrag nabootsen.
   Voor bredere packet-simulation-checks kun je GrimAC naast ShieldGuard gebruiken, eerst met meldingen en handmatige controle.
 - Moet je zelf spelen/testen? Staff met OP heeft `shieldguard.movement.bypass` en `shieldguard.bypass` standaard.
 
 - Kleine reveal/remask-vertraging (standaard max ~0,1 s) bij het naderen of verlaten van erts/kisten, door `reveal-interval-ticks`.
-- De freecam-chunks worden maximaal één per tick ververst, met de dichtstbijzijnde chunks eerst. Een nieuwe spelerpositie vervangt een verouderde wachtrij, zodat actuele chunks niet achter verre chunks blijven wachten.
+- De freecam-chunks worden maximaal vier per tick ververst, met de dichtstbijzijnde chunks eerst. Een nieuwe spelerpositie vervangt een verouderde wachtrij, zodat actuele chunks niet achter verre chunks blijven wachten. Dit vult grotten sneller, met iets meer chunkverkeer tijdens het verversen.
 - Een overhang of boom boven een grot telt als "oppervlak": ondiepe grotten daaronder blijven binnen de marge zichtbaar.
 - Erts of kisten achter glas of bladeren worden pas getoond als de zichtlijn vrij is.

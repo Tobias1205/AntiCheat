@@ -2,7 +2,7 @@ name: ShieldGuard
 version: '${project.version}'
 main: nl.shieldguard.ShieldGuard
 api-version: '26.2'
-description: Anti-freecam, anti-xray, movement and combat alerts, and reports
+description: Anti-freecam, anti-xray, movement, combat and action alerts, and reports
 depend: [packetevents]
 
 commands:
@@ -27,6 +27,9 @@ permissions:
     default: op
   shieldguard.combat.bypass:
     description: Geen combatheuristiek-meldingen (voor staff)
+    default: op
+  shieldguard.action.bypass:
+    description: Geen block-placement-heuristieken uitvoeren
     default: op
   shieldguard.admin:
     description: /shieldguard status en reload

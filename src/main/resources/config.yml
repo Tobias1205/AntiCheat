@@ -23,9 +23,9 @@ freecam-protection:
   surface-margin: 12
   # Hoe ver (in chunks) om de speler heen we chunks opnieuw sturen als de grens verschuift
   refresh-radius-chunks: 8
-  # Eén chunk per tick: snelle updates zonder grote refresh-pieken.
+  # Meerdere chunks per tick vullen grotten sneller; dichtstbijzijnde chunks worden eerst ververst.
   refresh-interval-ticks: 1
-  chunks-per-run: 1
+  chunks-per-run: 4
   # Pas opnieuw maskeren zodra de speler voldoende hoger is gekomen
   remask-gap-blocks: 8
 
@@ -150,6 +150,20 @@ combat:
     enabled: true
     max-per-second: 30
     window-seconds: 3
+
+# Bouwactie-signalen: alleen staffmeldingen, geen automatische straffen.
+actions:
+  enabled: true
+  alert-cooldown-seconds: 10
+  window-ms: 2500
+  scaffold:
+    enabled: true
+    # Meld pas na meerdere plaatsingen rond/onder de voeten binnen het tijdvenster.
+    minimum-placements: 7
+  fast-place:
+    enabled: true
+    # Hoge drempel om normaal snel bouwen niet direct te melden.
+    minimum-per-second: 18
 
 reports:
   cooldown-seconds: 60
